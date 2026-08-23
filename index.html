@@ -34,6 +34,7 @@ canvas{
     width:100%;
     height:100%;
     display:block;
+    image-rendering:auto;
 }
 
 #ui{
@@ -967,6 +968,104 @@ button:active{
 
 <script>
 
+// ============================================
+// تشخیص مینی‌اپ تلگرام و تنظیمات بهینه‌سازی
+// ============================================
+const isTelegramMiniApp = !!(window.Telegram && window.Telegram.WebApp);
+
+// تنظیمات مخصوص تلگرام برای کاهش لگ
+const TELEGRAM_OPTIMIZATIONS = {
+    // هر چند فریم یکبار رندر بشه (کاهش مصرف CPU)
+    frameSkip: isTelegramMiniApp ? 2 : 1,
+    // حداکثر تعداد ذرات
+    maxParticles: isTelegramMiniApp ? 30 : 80,
+    // فاصله زمانی بیشتر بین تولید تخم‌ها
+    eggInterval: isTelegramMiniApp ? 0.8 : 0.55,
+    // فاصله زمانی بیشتر بین تولید موانع
+    obstacleInterval: isTelegramMiniApp ? 1.5 : 1.05,
+    // غیرفعال کردن افکت‌های سنگین
+    disableHeavyEffects: isTelegramMiniApp ? true : false,
+    // محدود کردن نرخ فریم
+    targetFPS: isTelegramMiniApp ? 30 : 60,
+    // کاهش کیفیت رندر
+    lowQuality: isTelegramMiniApp ? true : false
+};
+
+// ============================================
+// بهینه‌سازی Canvas برای تلگرام
+// ============================================
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d", { 
+    alpha: false, 
+    desynchronized: !isTelegramMiniApp 
+});
+
+let W = 0, H = 0, scale = 1;
+
+function resize(){
+    W = window.innerWidth;
+    H = window.innerHeight;
+    // در تلگرام از اسکیل کمتر استفاده کن
+    scale = Math.min(window.devicePixelRatio || 1, isTelegramMiniApp ? 1.2 : 1.5);
+    canvas.width = Math.floor(W * scale);
+    canvas.height = Math.floor(H * scale);
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    
+    // در تلگرام کیفیت رو降低 کن
+    if (isTelegramMiniApp) {
+        canvas.style.imageRendering = 'pixelated';
+    }
+}
+resize();
+window.addEventListener("resize", resize);
+
+// ============================================
+// متغیرهای اصلی
+// ============================================
+const scoreText = document.getElementById("score");
+const bestText = document.getElementById("best");
+const comboBox = document.getElementById("combo");
+const comboValue = document.getElementById("comboValue");
+const startScreen = document.getElementById("startScreen");
+const gameOver = document.getElementById("gameOver");
+const finalScore = document.getElementById("finalScore");
+const recordText = document.getElementById("record");
+const startButton = document.getElementById("start");
+const restartButton = document.getElementById("restart");
+const menuButton = document.getElementById("menuButton");
+const menuPanel = document.getElementById("menuPanel");
+const gamesValue = document.getElementById("gamesValue");
+const walletBest = document.getElementById("walletBest");
+const walletEggs = document.getElementById("walletEggs");
+const walletScore = document.getElementById("walletScore");
+const finalGames = document.getElementById("finalGames");
+const finalEggs = document.getElementById("finalEggs");
+const changeThemeBtn = document.getElementById("changeThemeBtn");
+const openThemeStartBtn = document.getElementById("openThemeStartBtn");
+const openThemeFromMenu = document.getElementById("openThemeFromMenu");
+const themeSelectorOverlay = document.getElementById("themeSelectorOverlay");
+const closeThemeSelector = document.getElementById("closeThemeSelector");
+const currentThemeDisplay = document.getElementById("currentThemeDisplay");
+const startThemeLabel = document.getElementById("startThemeLabel");
+
+const myReferralCode = document.getElementById("myReferralCode");
+const referralCount = document.getElementById("referralCount");
+const copyBtn = document.getElementById("copyReferralCode");
+
+const powerupTimer = document.getElementById('powerupTimer');
+const shieldTimeDisplay = document.getElementById('shieldTimeDisplay');
+const speedTimeDisplay = document.getElementById('speedTimeDisplay');
+const gemTimeDisplay = document.getElementById('gemTimeDisplay');
+
+const shieldTimerItem = document.getElementById('shieldTimer');
+const speedTimerItem = document.getElementById('speedTimer');
+const gemTimerItem = document.getElementById('gemTimer');
+
+const WEBHOOK_URL = "https://benula-webhook-production.up.railway.app";
+
+// ============================================
+// توابع اینترنت و referral
+// ============================================
 const noInternetOverlay = document.getElementById('noInternetOverlay');
 const retryBtn = document.getElementById('retryBtn');
 let isOnline = true;
@@ -1038,63 +1137,1719 @@ setInterval(() => {
     }
 }, 10000);
 
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d", { alpha:false, desynchronized:true });
+// ============================================
+// توابع صدا و موسیقی (با حفظ آهنگ)
+// ============================================
+let audioContext = null;
+let musicMaster = null;
+let musicTimer = null;
+let musicStep = 0;
+let soundEnabled = localStorage.getItem("foxSound") !== "off";
 
-let W = 0, H = 0, scale = 1;
-
-function resize(){
-    W = window.innerWidth;
-    H = window.innerHeight;
-    scale = Math.min(window.devicePixelRatio || 1, 1.5);
-    canvas.width = Math.floor(W * scale);
-    canvas.height = Math.floor(H * scale);
-    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+// در تلگرام صدا رو فعال نگه دار ولی با کیفیت کمتر
+if (isTelegramMiniApp && soundEnabled) {
+    // صدا رو فعال نگه میداریم
 }
-resize();
-window.addEventListener("resize", resize);
 
-const scoreText = document.getElementById("score");
-const bestText = document.getElementById("best");
-const comboBox = document.getElementById("combo");
-const comboValue = document.getElementById("comboValue");
-const startScreen = document.getElementById("startScreen");
-const gameOver = document.getElementById("gameOver");
-const finalScore = document.getElementById("finalScore");
-const recordText = document.getElementById("record");
-const startButton = document.getElementById("start");
-const restartButton = document.getElementById("restart");
-const menuButton = document.getElementById("menuButton");
-const menuPanel = document.getElementById("menuPanel");
-const gamesValue = document.getElementById("gamesValue");
-const walletBest = document.getElementById("walletBest");
-const walletEggs = document.getElementById("walletEggs");
-const walletScore = document.getElementById("walletScore");
-const finalGames = document.getElementById("finalGames");
-const finalEggs = document.getElementById("finalEggs");
-const changeThemeBtn = document.getElementById("changeThemeBtn");
-const openThemeStartBtn = document.getElementById("openThemeStartBtn");
-const openThemeFromMenu = document.getElementById("openThemeFromMenu");
-const themeSelectorOverlay = document.getElementById("themeSelectorOverlay");
-const closeThemeSelector = document.getElementById("closeThemeSelector");
-const currentThemeDisplay = document.getElementById("currentThemeDisplay");
-const startThemeLabel = document.getElementById("startThemeLabel");
+function initAudio(){
+    if(audioContext) return;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if(!AudioCtx) return;
+    audioContext = new AudioCtx();
+    musicMaster = audioContext.createGain();
+    musicMaster.gain.value = soundEnabled ? 0.075 : 0;
+    musicMaster.connect(audioContext.destination);
+}
 
-const myReferralCode = document.getElementById("myReferralCode");
-const referralCount = document.getElementById("referralCount");
-const copyBtn = document.getElementById("copyReferralCode");
+function playTone(frequency, duration, type="square", volume=.08, delay=0){
+    if(!audioContext || !soundEnabled) return;
+    // در تلگرام صدا رو با حجم کمتر پخش کن
+    const vol = isTelegramMiniApp ? volume * 0.7 : volume;
+    const now = audioContext.currentTime + delay;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, now);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(vol, now + .008);
+    gain.gain.exponentialRampToValueAtTime(.001, now + duration);
+    oscillator.connect(gain);
+    gain.connect(musicMaster);
+    oscillator.start(now);
+    oscillator.stop(now + duration + .03);
+}
 
-const powerupTimer = document.getElementById('powerupTimer');
-const shieldTimeDisplay = document.getElementById('shieldTimeDisplay');
-const speedTimeDisplay = document.getElementById('speedTimeDisplay');
-const gemTimeDisplay = document.getElementById('gemTimeDisplay');
+function playKick(){
+    if(!audioContext || !soundEnabled) return;
+    const now = audioContext.currentTime;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(120, now);
+    oscillator.frequency.exponentialRampToValueAtTime(45, now + .12);
+    gain.gain.setValueAtTime(.12, now);
+    gain.gain.exponentialRampToValueAtTime(.001, now + .14);
+    oscillator.connect(gain);
+    gain.connect(musicMaster);
+    oscillator.start(now);
+    oscillator.stop(now + .15);
+}
 
-const shieldTimerItem = document.getElementById('shieldTimer');
-const speedTimerItem = document.getElementById('speedTimer');
-const gemTimerItem = document.getElementById('gemTimer');
+function playHat(){
+    if(!audioContext || !soundEnabled) return;
+    const buffer = audioContext.createBuffer(1, audioContext.sampleRate * .035, audioContext.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<data.length;i++) data[i] = Math.random() * 2 - 1;
+    const source = audioContext.createBufferSource();
+    const gain = audioContext.createGain();
+    gain.gain.value = .025;
+    source.buffer = buffer;
+    source.connect(gain);
+    gain.connect(musicMaster);
+    source.start();
+}
 
-const WEBHOOK_URL = "https://benula-webhook-production.up.railway.app";
+const melody = [523.25, 659.25, 783.99, 659.25, 587.33, 698.46, 880.00, 698.46, 523.25, 659.25, 783.99, 987.77, 880.00, 783.99, 659.25, 587.33];
 
+function musicTick(){
+    if(!playing || !soundEnabled) return;
+    const note = melody[musicStep % melody.length];
+    playTone(note, .17, "square", .055);
+    if(musicStep % 2 === 0) playHat();
+    if(musicStep % 4 === 0) playKick();
+    if(musicStep % 8 === 7) playTone(note / 2, .28, "triangle", .035, .02);
+    musicStep++;
+}
+
+function startMusic(){
+    initAudio();
+    if(!audioContext || !musicMaster) return;
+    if(audioContext.state === "suspended") audioContext.resume();
+    musicMaster.gain.cancelScheduledValues(audioContext.currentTime);
+    musicMaster.gain.setTargetAtTime(soundEnabled ? 0.075 : 0, audioContext.currentTime, 0.03);
+    stopMusicTimer();
+    musicStep = 0;
+    if(soundEnabled) musicTick();
+    musicTimer = setInterval(musicTick, 190);
+}
+
+function stopMusicTimer(){
+    if(musicTimer){ clearInterval(musicTimer); musicTimer = null; }
+}
+
+function stopMusic(){
+    stopMusicTimer();
+    if(musicMaster && audioContext){
+        musicMaster.gain.cancelScheduledValues(audioContext.currentTime);
+        musicMaster.gain.setTargetAtTime(0, audioContext.currentTime, 0.03);
+    }
+}
+
+function enableSound(){
+    soundEnabled = true;
+    localStorage.setItem("foxSound", "on");
+    initAudio();
+    if(musicMaster && audioContext){
+        musicMaster.gain.cancelScheduledValues(audioContext.currentTime);
+        musicMaster.gain.setTargetAtTime(.075, audioContext.currentTime, .04);
+    }
+    if(playing) startMusic();
+    updateSoundButtons();
+}
+
+function disableSound(){
+    soundEnabled = false;
+    localStorage.setItem("foxSound", "off");
+    stopMusic();
+    updateSoundButtons();
+}
+
+function updateSoundButtons(){
+    const onButton = document.getElementById("soundOnButton");
+    const offButton = document.getElementById("soundOffButton");
+    if(language === "fa"){
+        onButton.textContent = soundEnabled ? "🔊 روشن ✓" : "🔊 روشن";
+        offButton.textContent = !soundEnabled ? "🔇 خاموش ✓" : "🔇 خاموش";
+    }else{
+        onButton.textContent = soundEnabled ? "🔊 On ✓" : "🔊 On";
+        offButton.textContent = !soundEnabled ? "🔇 Off ✓" : "🔇 Off";
+    }
+}
+
+// ============================================
+// توابع ذخیره‌سازی
+// ============================================
+function loadNumber(key, defaultValue = 0){
+    try{
+        const value = localStorage.getItem(key);
+        if(value === null){ localStorage.setItem(key, String(defaultValue)); return defaultValue; }
+        const number = Number(value);
+        if(Number.isFinite(number)) return number;
+        localStorage.setItem(key, String(defaultValue));
+        return defaultValue;
+    }catch(error){ return defaultValue; }
+}
+
+function saveWallet(){
+    try{
+        localStorage.setItem("foxBest", String(best));
+        localStorage.setItem("foxGames", String(gamesPlayed));
+        localStorage.setItem("foxEggs", String(totalEggs));
+        localStorage.setItem("foxTotalScore", String(totalScore));
+    }catch(error){}
+}
+
+let best = loadNumber("foxBest");
+let gamesPlayed = loadNumber("foxGames");
+let totalEggs = loadNumber("foxEggs");
+let totalScore = loadNumber("foxTotalScore");
+
+// ============================================
+// سیستم اسکین‌ها
+// ============================================
+const FOX_SKINS = [
+    { id: 'classic', name: 'Classic Fox', nameFa: 'روباه کلاسیک', color: '#f97316', price: 0, rarity: 'common', effect: null, glowColor: null, eyeColor: '#1a1a2a' },
+    { id: 'ember', name: 'Ember Fox', nameFa: 'روباه آتشین', color: '#ef4444', price: 250000, rarity: 'uncommon', effect: 'fire_trail', glowColor: '#ff6b35', eyeColor: '#fbbf24' },
+    { id: 'frost', name: 'Frost Fox', nameFa: 'روباه یخی', color: '#3b82f6', price: 500000, rarity: 'uncommon', effect: 'snow_particles', glowColor: '#93c5fd', eyeColor: '#ffffff' },
+    { id: 'shadow', name: 'Shadow Fox', nameFa: 'روباه شب', color: '#7c3aed', price: 1000000, rarity: 'rare', effect: 'glow_eyes', glowColor: '#4ade80', eyeColor: '#4ade80' },
+    { id: 'golden', name: 'Golden Fox', nameFa: 'روباه طلایی', color: '#fbbf24', price: 1750000, rarity: 'rare', effect: 'sparkles', glowColor: '#fcd34d', eyeColor: '#b45309' },
+    { id: 'neon', name: 'Neon Fox', nameFa: 'روباه نئونی', color: '#ec4899', price: 2500000, rarity: 'epic', effect: 'neon_glow', glowColor: '#f472b6', eyeColor: '#3b82f6' },
+    { id: 'crystal', name: 'Crystal Fox', nameFa: 'روباه کریستالی', color: '#8b5cf6', price: 4000000, rarity: 'epic', effect: 'crystal_shine', glowColor: '#a78bfa', eyeColor: '#c4b5d4' },
+    { id: 'galaxy', name: 'Galaxy Fox', nameFa: 'روباه کهکشانی', color: '#1e1b4b', price: 7500000, rarity: 'legendary', effect: 'galaxy_stars', glowColor: '#818cf8', eyeColor: '#c7d2fe' },
+    { id: 'rainbow', name: 'Rainbow Fox', nameFa: 'روباه رنگین‌کمان', color: 'rainbow', price: 12500000, rarity: 'legendary', effect: 'rainbow_shift', glowColor: null, eyeColor: '#ffffff' },
+    { id: 'phoenix', name: 'Phoenix Fox', nameFa: 'روباه ققنوس', color: '#dc2626', price: 25000000, rarity: 'mythic', effect: 'phoenix_flames', glowColor: '#f97316', eyeColor: '#fcd34d' }
+];
+
+let currentSkinId = localStorage.getItem('foxSkin') || 'classic';
+let purchasedSkins = JSON.parse(localStorage.getItem('purchasedSkins') || '["classic"]');
+
+function getSkin(id) {
+    return FOX_SKINS.find(s => s.id === id) || FOX_SKINS[0];
+}
+
+function isSkinOwned(id) {
+    return purchasedSkins.includes(id);
+}
+
+function isSkinActive(id) {
+    return currentSkinId === id;
+}
+
+function getRarityLabel(rarity) {
+    const labels = {
+        'common': { fa: 'معمولی', en: 'Common' },
+        'uncommon': { fa: 'نادر', en: 'Uncommon' },
+        'rare': { fa: 'کمیاب', en: 'Rare' },
+        'epic': { fa: 'حماسی', en: 'Epic' },
+        'legendary': { fa: 'افسانه‌ای', en: 'Legendary' },
+        'mythic': { fa: 'اسطوره‌ای', en: 'Mythic' }
+    };
+    return labels[rarity] ? (language === 'fa' ? labels[rarity].fa : labels[rarity].en) : rarity;
+}
+
+function getEffect(effect) {
+    const effects = {
+        'fire_trail': 'Fire Trail',
+        'snow_particles': 'Snow Particles',
+        'glow_eyes': 'Glowing Eyes',
+        'sparkles': 'Sparkles',
+        'neon_glow': 'Neon Glow',
+        'crystal_shine': 'Crystal Shine',
+        'galaxy_stars': 'Galaxy Stars',
+        'rainbow_shift': 'Rainbow Shift',
+        'phoenix_flames': 'Phoenix Flames'
+    };
+    return effects[effect] || '';
+}
+
+function getEffectFa(effect) {
+    const effects = {
+        'fire_trail': 'رد آتش',
+        'snow_particles': 'ذرات برف',
+        'glow_eyes': 'چشم‌های درخشان',
+        'sparkles': 'جرقه‌های طلایی',
+        'neon_glow': 'درخشش نئون',
+        'crystal_shine': 'خطوط کریستال',
+        'galaxy_stars': 'ستاره‌های کهکشان',
+        'rainbow_shift': 'تغییر رنگ مداوم',
+        'phoenix_flames': 'پرهای آتشین'
+    };
+    return effects[effect] || '';
+}
+
+// ============================================
+// بررسی اینکه آیا افکت باید نمایش داده بشه
+// ============================================
+function shouldRenderEffect(effectName) {
+    if (!isTelegramMiniApp) return true;
+    // افکت‌های سنگین رو در تلگرام غیرفعال کن
+    const heavyEffects = ['phoenix_flames', 'galaxy_stars', 'rainbow_shift', 'neon_glow', 'fire_trail'];
+    return !heavyEffects.includes(effectName);
+}
+
+// ============================================
+// رندر فروشگاه اسکین‌ها
+// ============================================
+function renderSkinShop() {
+    const grid = document.getElementById('skinShopGrid');
+    if (!grid) return;
+    
+    const fa = language === 'fa';
+    const ownedCount = purchasedSkins.length;
+    document.getElementById('skinCount').textContent = ownedCount + '/' + FOX_SKINS.length;
+    document.getElementById('totalScoreDisplay').textContent = totalScore.toLocaleString();
+    
+    const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+    const rarityLabels = {
+        common: { fa: '⚪ معمولی', en: '⚪ Common', color: '#6b7280' },
+        uncommon: { fa: '🟢 نادر', en: '🟢 Uncommon', color: '#22c55e' },
+        rare: { fa: '🔵 کمیاب', en: '🔵 Rare', color: '#3b82f6' },
+        epic: { fa: '🟣 حماسی', en: '🟣 Epic', color: '#8b5cf6' },
+        legendary: { fa: '🟠 افسانه‌ای', en: '🟠 Legendary', color: '#f59e0b' },
+        mythic: { fa: '🔴 اسطوره‌ای', en: '🔴 Mythic', color: '#ef4444' }
+    };
+    
+    let html = '';
+    
+    rarityOrder.forEach(rarity => {
+        const skinsInRarity = FOX_SKINS.filter(s => s.rarity === rarity);
+        if (skinsInRarity.length === 0) return;
+        
+        const label = fa ? rarityLabels[rarity].fa : rarityLabels[rarity].en;
+        const color = rarityLabels[rarity].color;
+        
+        html += `<div style="margin-top:12px;margin-bottom:6px;">`;
+        html += `<div style="font-size:11px;font-weight:bold;color:${color};letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:4px;">${label}</div>`;
+        html += `<div style="display:grid;grid-template-columns:repeat(${skinsInRarity.length === 1 ? 1 : 2},1fr);gap:6px;margin-top:6px;">`;
+        
+        skinsInRarity.forEach(skin => {
+            const owned = isSkinOwned(skin.id);
+            const active = isSkinActive(skin.id);
+            const canBuy = totalScore >= skin.price && !owned;
+            const isFree = skin.price === 0;
+            
+            const colorStyle = skin.id === 'rainbow' 
+                ? 'linear-gradient(45deg,red,orange,yellow,green,blue,indigo,violet)' 
+                : skin.color;
+            
+            let statusText = '';
+            let statusColor = '';
+            let bgColor = 'rgba(255,255,255,0.03)';
+            let borderColor = 'rgba(255,255,255,0.06)';
+            
+            if (active) {
+                statusText = fa ? '✓ فعال' : '✓ Active';
+                statusColor = '#4ade80';
+                bgColor = 'rgba(74,222,128,0.1)';
+                borderColor = '#4ade80';
+            } else if (owned) {
+                statusText = fa ? '✅ خریداری شده' : '✅ Owned';
+                statusColor = '#60a5fa';
+                bgColor = 'rgba(96,165,250,0.08)';
+                borderColor = 'rgba(96,165,250,0.3)';
+            } else if (isFree) {
+                statusText = fa ? 'رایگان' : 'Free';
+                statusColor = '#fbbf24';
+            } else if (canBuy) {
+                statusText = '💰 ' + skin.price.toLocaleString();
+                statusColor = '#fbbf24';
+            } else {
+                statusText = '🔒 ' + skin.price.toLocaleString();
+                statusColor = '#ef4444';
+                bgColor = 'rgba(239,68,68,0.05)';
+            }
+            
+            const rarityLabel = fa ? getRarityLabel(skin.rarity) : getRarityLabel(skin.rarity);
+            const effectLabel = fa ? getEffectFa(skin.effect) : getEffect(skin.effect);
+            
+            html += `
+                <div class="skin-option ${active ? 'active' : ''} ${owned ? 'owned' : ''} ${!owned && !canBuy && !isFree ? 'locked' : ''}" 
+                     data-skin="${skin.id}"
+                     style="background:${bgColor};border:2px solid ${borderColor};border-radius:10px;padding:8px;text-align:center;cursor:${(owned || canBuy || isFree) ? 'pointer' : 'not-allowed'};transition:all 0.2s;position:relative;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                        <span style="font-size:10px;color:${statusColor};">${statusText}</span>
+                        <span style="font-size:8px;color:rgba(255,255,255,0.2);">${rarityLabel}</span>
+                    </div>
+                    <div style="width:36px;height:36px;border-radius:50%;margin:0 auto 4px;background:${colorStyle};border:2px solid rgba(255,255,255,0.1);box-shadow:${active ? '0 0 15px rgba(249,115,22,0.3)' : 'none'};"></div>
+                    <div style="font-size:11px;font-weight:bold;color:white;">${fa ? skin.nameFa : skin.name}</div>
+                    ${effectLabel ? `<div style="font-size:8px;color:rgba(255,255,255,0.3);">${effectLabel}</div>` : '<div style="font-size:8px;color:rgba(255,255,255,0.15);">—</div>'}
+                    ${active ? '<div style="position:absolute;top:-4px;right:-4px;font-size:12px;">⭐</div>' : ''}
+                </div>
+            `;
+        });
+        
+        html += `</div></div>`;
+    });
+    
+    grid.innerHTML = html;
+    
+    document.querySelectorAll('.skin-option').forEach(el => {
+        el.addEventListener('click', function() {
+            const skinId = this.dataset.skin;
+            if (!this.classList.contains('locked')) {
+                handleSkinClick(skinId);
+            } else {
+                const fa = language === 'fa';
+                showToast(fa ? '❌ امتیاز کافی نیست!' : '❌ Not enough points!');
+            }
+        });
+    });
+}
+
+function handleSkinClick(skinId) {
+    const skin = getSkin(skinId);
+    if (!skin) return;
+    
+    const owned = isSkinOwned(skinId);
+    const fa = language === 'fa';
+    
+    if (owned) {
+        currentSkinId = skinId;
+        localStorage.setItem('foxSkin', skinId);
+        renderSkinShop();
+        updateUI();
+        if (!playing) {
+            drawBackground();
+            drawFox();
+        }
+        showToast((fa ? '✅ رنگ ' : '✅ Skin ') + (fa ? skin.nameFa : skin.name) + (fa ? ' انتخاب شد!' : ' selected!'));
+        return;
+    }
+    
+    if (skin.price === 0) {
+        purchasedSkins.push(skinId);
+        localStorage.setItem('purchasedSkins', JSON.stringify(purchasedSkins));
+        currentSkinId = skinId;
+        localStorage.setItem('foxSkin', skinId);
+        renderSkinShop();
+        updateUI();
+        if (!playing) {
+            drawBackground();
+            drawFox();
+        }
+        showToast((fa ? '✅ رنگ ' : '✅ Skin ') + (fa ? skin.nameFa : skin.name) + (fa ? ' فعال شد!' : ' activated!'));
+        return;
+    }
+    
+    if (totalScore >= skin.price) {
+        if (confirm((fa ? 'آیا مطمئنی می‌خوای رنگ "' : 'Buy skin "') + (fa ? skin.nameFa : skin.name) + '" ' + (fa ? 'را به قیمت ' : 'for ') + skin.price.toLocaleString() + (fa ? ' امتیاز بخری؟' : ' points?'))) {
+            totalScore -= skin.price;
+            purchasedSkins.push(skinId);
+            localStorage.setItem('purchasedSkins', JSON.stringify(purchasedSkins));
+            currentSkinId = skinId;
+            localStorage.setItem('foxSkin', skinId);
+            saveWallet();
+            renderSkinShop();
+            updateUI();
+            if (!playing) {
+                drawBackground();
+                drawFox();
+            }
+            showToast((fa ? '✅ رنگ "' : '✅ Skin "') + (fa ? skin.nameFa : skin.name) + '" ' + (fa ? 'خریداری شد!' : 'purchased!'));
+        }
+    } else {
+        showToast((fa ? '❌ امتیاز کافی نیست! نیاز به ' : '❌ Not enough points! Need ') + skin.price.toLocaleString() + (fa ? ' امتیاز' : ' points'));
+    }
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    toast.className = '';
+    void toast.offsetWidth;
+    toast.style.animation = 'fadeInUp 0.3s ease';
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+        toast.style.animation = 'fadeOutDown 0.3s ease';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 300);
+    }, 2500);
+}
+
+// ============================================
+// سیستم تم‌ها
+// ============================================
+let currentTheme = localStorage.getItem("foxTheme") || "classic";
+
+const themeConfigs = {
+    classic: {
+        id: "classic",
+        icon: "☀️",
+        nameEn: "Classic",
+        nameFa: "کلاسیک",
+        descEn: "Original summer",
+        descFa: "تابستانی اصلی",
+        skyDay: ["#87CEEB", "#a8d8f0", "#c8e8f5"],
+        skyNight: ["#0a1525", "#152535", "#1a2a40"],
+        groundDay: ["#7dbb4b", "#6aaa3a", "#55963b"],
+        groundNight: ["#2a3a2a", "#1a2a1a", "#0a1a0a"],
+        eggColors: [
+            ["#ffffff", 1], ["#45d46b", 2], ["#3498db", 5], ["#a855f7", 10], ["#ffd43b", 25]
+        ],
+        foxColor: "#f97316",
+        treeColor: "#6a4a2a",
+        rockColor: "#7a8a9a",
+        isSpace: false
+    },
+    city: {
+        id: "city",
+        icon: "🏙️",
+        nameEn: "City",
+        nameFa: "شهری",
+        descEn: "Urban streets",
+        descFa: "خیابان‌های شهری",
+        skyDay: ["#b8c8d8", "#d0dce8", "#e0e8f0"],
+        skyNight: ["#0a1520", "#15202a", "#1a2a3a"],
+        groundDay: ["#8a9aa8", "#7a8a98", "#6a7a88"],
+        groundNight: ["#3a4a5a", "#2a3a4a", "#1a2a3a"],
+        eggColors: [
+            ["#e8eef0", 1], ["#b8c8d8", 2], ["#8898a8", 5], ["#5a6a7a", 10], ["#c8d8e0", 25]
+        ],
+        foxColor: "#d47a3a",
+        treeColor: "#6a4a2a",
+        rockColor: "#7a8a9a",
+        isSpace: false
+    },
+    beach: {
+        id: "beach",
+        icon: "🏖️",
+        nameEn: "Beach",
+        nameFa: "ساحلی",
+        descEn: "Sun & sand",
+        descFa: "آفتاب و شن",
+        skyDay: ["#87CEEB", "#b0d8f0", "#d0e8f5"],
+        skyNight: ["#0a1a2a", "#152535", "#1a2a40"],
+        groundDay: ["#f0d8a0", "#e8c888", "#d4b070"],
+        groundNight: ["#5a4a2a", "#4a3a1a", "#3a2a10"],
+        eggColors: [
+            ["#f5e8c8", 1], ["#f0c878", 2], ["#e8a848", 5], ["#d48838", 10], ["#f5d898", 25]
+        ],
+        foxColor: "#d47a3a",
+        treeColor: "#6a5a3a",
+        rockColor: "#b8a888",
+        isSpace: false
+    },
+    forest: {
+        id: "forest",
+        icon: "🌲",
+        nameEn: "Forest",
+        nameFa: "جنگلی",
+        descEn: "Deep woods",
+        descFa: "جنگل انبوه",
+        skyDay: ["#6a9a6a", "#7aaa7a", "#8aba8a"],
+        skyNight: ["#0a1a0a", "#152a15", "#1a3a1a"],
+        groundDay: ["#3a5a2a", "#2a4a1a", "#1a3a0a"],
+        groundNight: ["#1a2a0a", "#0a1a0a", "#050a00"],
+        eggColors: [
+            ["#d4e8c8", 1], ["#a8c878", 2], ["#6a9a3a", 5], ["#3a6a1a", 10], ["#c8e8a8", 25]
+        ],
+        foxColor: "#d47a3a",
+        treeColor: "#3a2a1a",
+        rockColor: "#5a6a4a",
+        isSpace: false
+    },
+    space: {
+        id: "space",
+        icon: "🚀",
+        nameEn: "Space",
+        nameFa: "فضایی",
+        descEn: "Galaxy fox",
+        descFa: "روباه کهکشانی",
+        skyDay: ["#1a0a3a", "#2a1a4a", "#3a2a5a"],
+        skyNight: ["#0a0a1a", "#0a0a2a", "#1a0a2a"],
+        groundDay: ["#3a2a4a", "#4a3a5a", "#5a4a6a"],
+        groundNight: ["#1a0a2a", "#0a0a1a", "#05000a"],
+        eggColors: [
+            ["#c8a8e8", 1], ["#a878d8", 2], ["#f0d060", 5], ["#6a3a9a", 10], ["#e8e0f0", 25]
+        ],
+        foxColor: "#a878d8",
+        treeColor: "#4a2a6a",
+        rockColor: "#5a4a6a",
+        isSpace: true
+    },
+    night: {
+        id: "night",
+        icon: "🌙",
+        nameEn: "Night",
+        nameFa: "شب",
+        descEn: "Dark & stars",
+        descFa: "تاریک و ستاره‌ها",
+        skyDay: ["#1a1a2e", "#16213e", "#0f3460"],
+        skyNight: ["#0a0a1a", "#0a0a2a", "#1a0a2a"],
+        groundDay: ["#2a2a3a", "#1a1a2a", "#0a0a1a"],
+        groundNight: ["#1a0a2a", "#0a0a1a", "#05000a"],
+        eggColors: [
+            ["#e8e0f0", 1], ["#c8b8e8", 2], ["#a898d8", 5], ["#8878c8", 10], ["#d8c8f0", 25]
+        ],
+        foxColor: "#d47a3a",
+        treeColor: "#3a2a5a",
+        rockColor: "#5a4a6a",
+        isSpace: false
+    }
+};
+
+function getTheme() {
+    return themeConfigs[currentTheme] || themeConfigs.classic;
+}
+
+function getThemeName(themeId) {
+    const t = themeConfigs[themeId];
+    if (!t) return themeId;
+    return language === 'fa' ? t.nameFa : t.nameEn;
+}
+
+function getThemeDesc(themeId) {
+    const t = themeConfigs[themeId];
+    if (!t) return '';
+    return language === 'fa' ? t.descFa : t.descEn;
+}
+
+function setTheme(themeId) {
+    if (!themeConfigs[themeId]) return;
+    currentTheme = themeId;
+    localStorage.setItem("foxTheme", themeId);
+    updateThemeUI();
+    if (!playing) {
+        drawBackground();
+        drawFox();
+    }
+}
+
+function updateThemeUI() {
+    const theme = getTheme();
+    const name = language === 'fa' ? theme.nameFa : theme.nameEn;
+    currentThemeDisplay.textContent = name;
+    startThemeLabel.textContent = language === 'fa' ? 'تغییر تم' : 'Change Theme';
+    
+    document.querySelectorAll('.theme-option').forEach(opt => {
+        const tid = opt.dataset.theme;
+        const t = themeConfigs[tid];
+        if (!t) return;
+        const isActive = tid === currentTheme;
+        opt.classList.toggle('active', isActive);
+        opt.querySelector('.name').textContent = language === 'fa' ? t.nameFa : t.nameEn;
+        opt.querySelector('.desc').textContent = language === 'fa' ? t.descFa : t.descEn;
+    });
+    
+    document.getElementById('themeSelectorTitle').textContent = language === 'fa' ? '🎨 انتخاب تم' : '🎨 Select Theme';
+    document.getElementById('themeSelectorSub').textContent = language === 'fa' ? 'سبک ماجراجویی خود را انتخاب کنید' : 'Choose your adventure style';
+    document.getElementById('applyThemeText').textContent = language === 'fa' ? 'اعمال تم' : 'Apply Theme';
+    document.getElementById('changeThemeLabel').textContent = language === 'fa' ? 'تغییر تم' : 'Change Theme';
+}
+
+// ============================================
+// سیستم زبان
+// ============================================
+let language = localStorage.getItem("foxLanguage") || "en";
+
+function applyLanguage(){
+    const fa = language === "fa";
+    document.documentElement.lang = fa ? "fa" : "en";
+    document.documentElement.dir = fa ? "rtl" : "ltr";
+
+    document.getElementById("menuTitle").textContent = fa ? "منو" : "Menu";
+    document.getElementById("languageTitle").textContent = fa ? "زبان" : "Language";
+    document.getElementById("soundTitle").textContent = fa ? "صدا" : "Sound";
+    document.getElementById("themeMenuTitle").textContent = fa ? "🎨 تم" : "🎨 Theme";
+    document.getElementById("gamesLabel").textContent = fa ? "تعداد بازی‌ها" : "Games Played";
+    document.getElementById("bestLabel").textContent = fa ? "رکورد" : "Best Score";
+    document.getElementById("eggsLabel").textContent = fa ? "کل تخم‌های جمع‌شده" : "Total Eggs";
+    document.getElementById("walletScoreLabel").textContent = fa ? "امتیاز کل" : "Total Score";
+    document.getElementById("referralCodeLabel").textContent = fa ? "کد دعوت من" : "My Invite Code";
+    document.getElementById("referralCountLabel").textContent = fa ? "زیرمجموعه‌ها" : "Referrals";
+    document.getElementById("skinShopTitle").textContent = fa ? "🎨 پوست روباه" : "🎨 Fox Skins";
+    
+    document.getElementById("rewardTitle").textContent = fa ? "💰 سیستم جوایز" : "💰 Reward System";
+    document.getElementById("rewardDesc").innerHTML = fa ? 
+        '✅ امتیازهای شما در <strong>اپ</strong> و <strong>تلگرام</strong> یکی خواهد شد!' : 
+        '✅ Your scores in <strong>App</strong> and <strong>Telegram</strong> will be the same!';
+    document.getElementById("rewardSubDesc").textContent = fa ? 
+        '🔑 امتیازهای مینی‌اپ تلگرام و اپ بعداً یکی میشوند.' : 
+        '🔑 Telegram Mini App and App scores will be merged later.';
+    
+    document.getElementById("startText").textContent = fa ? "تخم‌ها را جمع کن و رکورد بزن!" : "Collect eggs and beat your record!";
+    startButton.textContent = fa ? "شروع بازی" : "Start Game";
+    document.getElementById("controlText").textContent = fa ? "لمس صفحه یا Space برای پرش" : "Tap screen or Space to jump";
+    document.getElementById("gameOverTitle").textContent = fa ? "باختی!" : "Game Over!";
+    document.getElementById("finalScoreLabel").textContent = fa ? "امتیاز:" : "Score:";
+    document.getElementById("gameCountLabel").textContent = fa ? "تعداد بازی‌ها:" : "Games:";
+    document.getElementById("totalEggLabel").textContent = fa ? "کل تخم‌ها:" : "Total Eggs:";
+    restartButton.textContent = fa ? "دوباره بازی کن" : "Play Again";
+    recordText.textContent = fa ? "🏆 رکورد جدید!" : "🏆 New Record!";
+    document.getElementById("startThemeLabel").textContent = fa ? "تغییر تم" : "Change Theme";
+    document.getElementById("changeThemeLabel").textContent = fa ? "تغییر تم" : "Change Theme";
+
+    updateSoundButtons();
+    updateUI();
+    updateThemeUI();
+    renderSkinShop();
+}
+
+function setLanguage(lang){
+    language = lang;
+    localStorage.setItem("foxLanguage", lang);
+    applyLanguage();
+    menuPanel.style.display = "none";
+    const prompt = document.getElementById('referralPrompt');
+    if (prompt) {
+        const oldOverlay = prompt;
+        const parent = oldOverlay.parentNode;
+        if (parent) {
+            parent.removeChild(oldOverlay);
+            showReferralPrompt();
+        }
+    }
+}
+
+// ============================================
+// متغیرهای بازی
+// ============================================
+function updateUI(){
+    const fa = language === "fa";
+    const scoreLabel = fa ? "امتیاز: " : "Score: ";
+    const bestLabel = fa ? "رکورد: " : "Best: ";
+    
+    scoreText.textContent = scoreLabel + score;
+    bestText.textContent = bestLabel + best;
+    
+    gamesValue.textContent = gamesPlayed;
+    walletBest.textContent = best;
+    walletEggs.textContent = totalEggs;
+    walletScore.textContent = totalScore;
+    finalGames.textContent = gamesPlayed;
+    finalEggs.textContent = totalEggs;
+}
+
+let playing = false;
+let score = 0;
+let speed = 330;
+let lastTime = 0;
+let eggTimer = 0;
+let obstacleTimer = 1;
+let combo = 0;
+let comboTimer = 0;
+let eggs = [];
+let obstacles = [];
+
+let powerups = [];
+let shieldActive = false;
+let shieldHits = 0;
+let shieldTimer = 0;
+let speedBoostActive = false;
+let speedBoostTimer = 0;
+let gemActive = false;
+let gemTimer = 0;
+let powerupTimerValue = 0;
+let gameTime = 0;
+let shieldTimeout = null;
+
+const POWERUP_CONFIG = {
+    shield: { 
+        duration: 15,
+        color: '#4fc3f7', 
+        icon: '🛡️', 
+        spawnRate: 0.02,
+        startTime: 10,
+        maxHits: 1
+    },
+    speed: { 
+        duration: 15,
+        color: '#ffd54f', 
+        icon: '⚡', 
+        spawnRate: 0.02,
+        startTime: 10,
+        speedMultiplier: 1.2
+    },
+    gem: { 
+        duration: 12,
+        color: '#f472b6', 
+        icon: '💎', 
+        spawnRate: 0.02,
+        startTime: 10
+    }
+};
+
+let trailPositions = [];
+let particles = [];
+
+// ============================================
+// تابع بهینه‌شده ساخت ذرات
+// ============================================
+function createParticle(x, y, color, type = 'sparkle') {
+    // محدود کردن تعداد ذرات در تلگرام
+    if (isTelegramMiniApp && particles.length > TELEGRAM_OPTIMIZATIONS.maxParticles) {
+        return;
+    }
+    
+    const size = isTelegramMiniApp ? (2 + Math.random() * 3) : (3 + Math.random() * 5);
+    
+    particles.push({
+        x: x,
+        y: y,
+        vx: (Math.random() - 0.5) * 200,
+        vy: (Math.random() - 0.5) * 200 - 50,
+        life: 1,
+        maxLife: 0.5 + Math.random() * 0.5,
+        size: size,
+        color: color,
+        type: type
+    });
+}
+
+function updateParticles(dt) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 100 * dt;
+        p.life -= dt / p.maxLife;
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+        }
+    }
+    
+    // اگر تعداد ذرات زیاد شد، نصفش کن (مخصوص تلگرام)
+    if (isTelegramMiniApp && particles.length > TELEGRAM_OPTIMIZATIONS.maxParticles * 1.5) {
+        particles.splice(0, Math.floor(particles.length / 2));
+    }
+}
+
+function drawParticles() {
+    particles.forEach(p => {
+        ctx.globalAlpha = p.life * 0.8;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+}
+
+// ============================================
+// توابع اصلی بازی
+// ============================================
+function updateSpeed(){
+    let baseSpeed = 330;
+    if(score <= 600){
+        const progress = Math.max(0, Math.min(score / 600, 1));
+        const smooth = progress * progress * (3 - 2 * progress);
+        baseSpeed = 330 + 870 * smooth;
+    }else{
+        baseSpeed = 1200 + (score - 600) * .12;
+    }
+    speed = speedBoostActive ? baseSpeed * 1.2 : baseSpeed;
+}
+
+let isNight = false;
+let lastDayCycle = -1;
+
+function updateDayNight(){
+    const cycle = Math.floor(score / 100);
+    isNight = cycle % 2 === 1;
+    if(cycle !== lastDayCycle) lastDayCycle = cycle;
+}
+
+function ground(){ return H * .72; }
+
+const fox = {
+    x:100, y:0, w:62, h:48, vy:0, gravity:2100, jump:-780, grounded:true, animation:0
+};
+
+function resetFox(){
+    fox.x = Math.max(70, W * .14);
+    fox.y = ground() - fox.h;
+    fox.vy = 0;
+    fox.grounded = true;
+    fox.animation = 0;
+}
+
+function getEggColors() {
+    return getTheme().eggColors;
+}
+
+function createEgg(){
+    const eggColors = getEggColors();
+    let r = Math.random();
+    let type = 0;
+    
+    if (gemActive) {
+        if(r > .3) type = 1;
+        if(r > .6) type = 2;
+        if(r > .8) type = 3;
+        if(r > .92) type = 4;
+    } else {
+        if(r > .55) type = 1;
+        if(r > .78) type = 2;
+        if(r > .91) type = 3;
+        if(r > .98) type = 4;
+    }
+    
+    const data = eggColors[type];
+    eggs.push({
+        x:W + 30,
+        y: ground() - 50 - Math.random() * 130,
+        w:25, h:34,
+        color:data[0],
+        value:data[1]
+    });
+}
+
+function createObstacle(){
+    const r = Math.random();
+    let type;
+    if(r < .45) type = "tree";
+    else if(r < .75) type = "rock";
+    else type = "cactus";
+    let w = 45, h = 65;
+    if(type === "rock"){ w = 55; h = 40; }
+    if(type === "cactus"){ w = 32; h = 62; }
+    obstacles.push({
+        x:W + 40,
+        y:ground() - h,
+        w:w, h:h,
+        type:type
+    });
+}
+
+function createPowerup(type) {
+    const config = POWERUP_CONFIG[type];
+    if (!config) return;
+    powerups.push({
+        x: W + 30,
+        y: ground() - 80 - Math.random() * 100,
+        w: 30,
+        h: 30,
+        type: type,
+        color: config.color,
+        icon: config.icon,
+        pulse: Math.random() * Math.PI * 2
+    });
+}
+
+function trySpawnPowerup() {
+    gameTime += 0.1;
+    if (gameTime < 10) return;
+    
+    const chance = Math.random() * 100;
+    const roll = 90;
+    
+    if (chance < roll) {
+        const types = ['shield', 'speed', 'gem'];
+        const type = types[Math.floor(Math.random() * types.length)];
+        createPowerup(type);
+    }
+}
+
+function collision(a,b){
+    return(
+        a.x + 8 < b.x + b.w &&
+        a.x + a.w - 8 > b.x &&
+        a.y + 7 < b.y + b.h &&
+        a.y + a.h - 5 > b.y
+    );
+}
+
+function jump(){
+    if(!playing) return;
+    if(fox.grounded){
+        fox.vy = fox.jump;
+        fox.grounded = false;
+    }
+}
+
+// ============================================
+// تابع بهینه‌شده drawBackground با کش
+// ============================================
+let bgCache = null;
+let bgCacheValid = false;
+
+function drawBackground(){
+    const gy = ground();
+    const theme = getTheme();
+    const colors = isNight ? theme.skyNight : theme.skyDay;
+    const isSpace = theme.isSpace || false;
+    
+    // در تلگرام از کش استفاده کن
+    if (isTelegramMiniApp && bgCacheValid) {
+        ctx.drawImage(bgCache, 0, 0);
+        return;
+    }
+    
+    const gradient = ctx.createLinearGradient(0, 0, 0, gy);
+    gradient.addColorStop(0, colors[0]);
+    gradient.addColorStop(0.5, colors[1]);
+    gradient.addColorStop(1, colors[2]);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, W, gy);
+
+    if(isSpace){
+        // کاهش تعداد ستاره‌ها در تلگرام
+        const starCount = isTelegramMiniApp ? 15 : 30;
+        for(let i=0; i<starCount; i++){
+            const x = (i * 137 + 53) % W;
+            const y = (i * 97 + 31) % (gy * 0.7);
+            const size = 2 + (i % 5);
+            ctx.fillStyle = `rgba(200,180,255,${0.03 + (i % 3) * 0.02})`;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.fillStyle = "rgba(150,100,200,0.05)";
+        ctx.beginPath();
+        ctx.ellipse(W*0.2, gy*0.3, 150, 80, 0.5, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(100,150,255,0.04)";
+        ctx.beginPath();
+        ctx.ellipse(W*0.7, gy*0.2, 180, 60, -0.3, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    if(isNight){
+        ctx.fillStyle = isSpace ? "rgba(255,240,220,0.1)" : "rgba(255,240,220,0.15)";
+        ctx.beginPath();
+        ctx.arc(W - 90, 90, 28, 0, Math.PI * 2);
+        ctx.fill();
+        const starColor = isSpace ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.2)";
+        ctx.fillStyle = starColor;
+        const starCount = isTelegramMiniApp ? 10 : (isSpace ? 40 : 20);
+        for(let i=0; i<starCount; i++){
+            const x = (i * 47 + 13) % W;
+            const y = 20 + (i * 37) % (gy * 0.5);
+            const size = isSpace ? 1 + (i%4) : 1 + (i%2);
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        if(isSpace && !isTelegramMiniApp){
+            const t = Date.now() / 1000;
+            for(let i=0; i<8; i++){
+                const x = (i * 73 + 17 + t * 5) % W;
+                const y = 30 + (i * 53 + 11 + t * 3) % (gy * 0.4);
+                const brightness = 0.3 + Math.sin(t * 2 + i) * 0.2;
+                ctx.fillStyle = `rgba(255,255,255,${brightness})`;
+                ctx.beginPath();
+                ctx.arc(x, y, 2 + (i%2), 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    } else {
+        ctx.fillStyle = isSpace ? "rgba(200,180,255,0.3)" : "rgba(255,230,180,0.7)";
+        ctx.beginPath();
+        ctx.arc(W - 90, 90, isSpace ? 30 : 35, 0, Math.PI * 2);
+        ctx.fill();
+        if(!isSpace && !isTelegramMiniApp){
+            ctx.fillStyle = "rgba(255,255,255,0.25)";
+            drawCloud(120, 100, 1);
+            drawCloud(W * .55, 145, .7);
+            drawCloud(W * .85, 80, .8);
+        }
+    }
+
+    const groundColors = isNight ? theme.groundNight : theme.groundDay;
+    const groundGrad = ctx.createLinearGradient(0, gy, 0, H);
+    groundGrad.addColorStop(0, groundColors[0]);
+    groundGrad.addColorStop(0.5, groundColors[1]);
+    groundGrad.addColorStop(1, groundColors[2]);
+    ctx.fillStyle = groundGrad;
+    ctx.fillRect(0, gy, W, H - gy);
+    
+    ctx.fillStyle = isNight ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+    ctx.fillRect(0, gy, W, 3);
+
+    if(isSpace && !isTelegramMiniApp){
+        ctx.fillStyle = "rgba(0,0,0,0.08)";
+        for(let i=0; i<5; i++){
+            const x = (i * 87 + 23) % W;
+            const y = gy + 20 + (i * 43) % (H - gy - 30);
+            ctx.beginPath();
+            ctx.ellipse(x, y, 15 + i*5, 8 + i*3, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = "rgba(255,255,255,0.05)";
+            ctx.beginPath();
+            ctx.ellipse(x-4, y-2, 8 + i*3, 4 + i*2, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = "rgba(0,0,0,0.08)";
+        }
+    }
+    
+    // کش کردن پس‌زمینه برای تلگرام
+    if (isTelegramMiniApp) {
+        if (!bgCache) {
+            bgCache = document.createElement('canvas');
+            bgCache.width = W;
+            bgCache.height = H;
+        }
+        const bgCtx = bgCache.getContext('2d');
+        bgCtx.clearRect(0, 0, W, H);
+        bgCtx.drawImage(ctx.canvas, 0, 0);
+        bgCacheValid = true;
+    }
+}
+
+function drawCloud(x,y,s){
+    ctx.beginPath();
+    ctx.arc(x, y, 20 * s, 0, Math.PI * 2);
+    ctx.arc(x + 25 * s, y - 8 * s, 27 * s, 0, Math.PI * 2);
+    ctx.arc(x + 52 * s, y, 20 * s, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawPowerup(p) {
+    const cx = p.x + p.w/2;
+    const cy = p.y + p.h/2;
+    p.pulse += 0.05;
+    const scale = 1 + Math.sin(p.pulse) * 0.08;
+    
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = p.color + '50';
+    
+    ctx.beginPath();
+    ctx.arc(cx, cy, 18 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = p.color + '30';
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(cx, cy, 14 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+    
+    ctx.shadowBlur = 0;
+    
+    ctx.font = '18px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'white';
+    ctx.fillText(p.icon, cx, cy + 1);
+}
+
+// ============================================
+// تابع بهینه‌شده drawFox
+// ============================================
+function drawFox(){
+    const x = fox.x;
+    const y = fox.y;
+    const running = fox.grounded ? Math.sin(fox.animation) * 4 : 0;
+    const theme = getTheme();
+    const isSpace = theme.isSpace || false;
+    const skin = getSkin(currentSkinId);
+
+    ctx.fillStyle = isSpace ? "rgba(100,80,150,0.15)" : "rgba(0,0,0,.12)";
+    ctx.beginPath();
+    ctx.ellipse(x + 30, ground() + 3, 28, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    let foxColor = skin.color;
+    if (skin.id === 'rainbow') {
+        const hue = (Date.now() / 50) % 360;
+        foxColor = `hsl(${hue}, 80%, 60%)`;
+    }
+    
+    // افکت‌های سنگین رو در تلگرام غیرفعال کن
+    const renderEffect = shouldRenderEffect(skin.effect);
+    
+    if (renderEffect && (skin.effect === 'neon_glow' || skin.effect === 'glow_eyes')) {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = skin.glowColor || foxColor;
+    }
+    
+    // فایر تریل در تلگرام غیرفعال میشه
+    if (renderEffect && skin.effect === 'fire_trail' && playing) {
+        trailPositions.push({ x: x + 20, y: y + fox.h/2, life: 1 });
+        if (trailPositions.length > 20) trailPositions.shift();
+        
+        trailPositions.forEach((pos, i) => {
+            const alpha = pos.life * 0.3;
+            const size = 5 * pos.life;
+            ctx.fillStyle = `rgba(255, 107, 53, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+            ctx.fill();
+            pos.life -= 0.03;
+        });
+    }
+    
+    ctx.fillStyle = foxColor;
+    ctx.beginPath();
+    ctx.moveTo(x + 15, y + 28);
+    ctx.quadraticCurveTo(x - 22, y + 5 + running, x - 10, y - 10 + running);
+    ctx.quadraticCurveTo(x + 5, y + 5, x + 20, y + 23);
+    ctx.fill();
+
+    ctx.fillStyle = isSpace ? "#d8c8f0" : "#f5e6d0";
+    ctx.beginPath();
+    ctx.moveTo(x - 10, y - 10 + running);
+    ctx.quadraticCurveTo(x - 25, y, x - 14, y + 12);
+    ctx.quadraticCurveTo(x - 5, y + 5, x + 1, y + 7);
+    ctx.fill();
+
+    ctx.fillStyle = foxColor;
+    ctx.beginPath();
+    ctx.ellipse(x + 29, y + 29, 27, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = isSpace ? "#d8c8f0" : "#f5e6d0";
+    ctx.beginPath();
+    ctx.ellipse(x + 34, y + 31, 14, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = isSpace ? "#9a7aba" : "#b86b3a";
+    ctx.fillRect(x + 14, y + 39 + running, 10, 11);
+    ctx.fillRect(x + 39, y + 39 - running, 10, 11);
+
+    ctx.fillStyle = foxColor;
+    ctx.beginPath();
+    ctx.ellipse(x + 43, y + 18, 16, 17, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = isSpace ? "#9a7aba" : "#c47a3a";
+    ctx.beginPath();
+    ctx.ellipse(x + 52, y + 8, 21, 17, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = foxColor;
+    ctx.beginPath();
+    ctx.moveTo(x + 38, y - 3);
+    ctx.lineTo(x + 39, y - 20);
+    ctx.lineTo(x + 50, y - 6);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(x + 53, y - 4);
+    ctx.lineTo(x + 62, y - 19);
+    ctx.lineTo(x + 68, y);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = isSpace ? "#c8b8e0" : "#f5cba0";
+    ctx.beginPath();
+    ctx.moveTo(x + 41, y - 6);
+    ctx.lineTo(x + 41, y - 14);
+    ctx.lineTo(x + 47, y - 7);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = isSpace ? "#d8c8f0" : "#f5e6d0";
+    ctx.beginPath();
+    ctx.ellipse(x + 67, y + 13, 12, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = skin.eyeColor || "#1a1a2a";
+    ctx.beginPath();
+    ctx.arc(x + 75, y + 10, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x + 58, y + 5, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = isSpace ? "#ccffdd" : "#fff";
+    ctx.beginPath();
+    ctx.arc(x + 59, y + 4, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // کریستال شاین در تلگرام غیرفعال
+    if (renderEffect && skin.effect === 'crystal_shine') {
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + 10 + i*8, y + 10);
+            ctx.lineTo(x + 20 + i*8, y + 40);
+            ctx.stroke();
+        }
+    }
+}
+
+function drawEgg(e){
+    const cx = e.x + e.w / 2;
+    const theme = getTheme();
+    const isSpace = theme.isSpace || false;
+    
+    if (gemActive) {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = "rgba(244,114,182,0.4)";
+    } else if(isSpace && !isTelegramMiniApp){
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "rgba(150,100,255,0.3)";
+    }
+    
+    ctx.fillStyle = e.color;
+    ctx.beginPath();
+    ctx.moveTo(cx, e.y);
+    ctx.bezierCurveTo(e.x + e.w, e.y + 5, e.x + e.w, e.y + 23, cx, e.y + e.h);
+    ctx.bezierCurveTo(e.x, e.y + 23, e.x, e.y + 5, cx, e.y);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = gemActive ? "rgba(244,114,182,0.3)" : (isSpace ? "rgba(200,180,255,0.2)" : "rgba(0,0,0,.06)");
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(e.x + 6, e.y + 18);
+    ctx.quadraticCurveTo(cx, e.y + 12, e.x + e.w - 6, e.y + 18);
+    ctx.stroke();
+    ctx.fillStyle = gemActive ? "rgba(244,114,182,0.15)" : (isSpace ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.12)");
+    ctx.beginPath();
+    ctx.ellipse(cx - 4, e.y + 8, 4, 7, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawObstacle(o){
+    const theme = getTheme();
+    const isSpace = theme.isSpace || false;
+    
+    if(o.type === "tree"){
+        if(isSpace){
+            ctx.fillStyle = "#4a2a6a";
+            ctx.fillRect(o.x + 16, o.y + 27, 14, o.h - 27);
+            ctx.fillStyle = "#6a3a8a";
+            if(!isTelegramMiniApp){
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = "rgba(150,100,255,0.2)";
+            }
+            ctx.beginPath();
+            ctx.arc(o.x + 23, o.y + 20, 22, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#8a5aaa";
+            ctx.beginPath();
+            ctx.arc(o.x + 7, o.y + 32, 14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(o.x + 40, o.y + 32, 14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        } else {
+            ctx.fillStyle = theme.treeColor || "#6a4a2a";
+            ctx.fillRect(o.x + 16, o.y + 27, 14, o.h - 27);
+            ctx.fillStyle = isNight ? "#3a4a3a" : "#23823c";
+            ctx.beginPath();
+            ctx.arc(o.x + 23, o.y + 20, 25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = isNight ? "#2a3a2a" : "#2f9e44";
+            ctx.beginPath();
+            ctx.arc(o.x + 7, o.y + 32, 16, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(o.x + 40, o.y + 32, 16, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }else if(o.type === "rock"){
+        if(isSpace){
+            ctx.fillStyle = "#4a3a5a";
+            if(!isTelegramMiniApp){
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "rgba(150,100,255,0.15)";
+            }
+            ctx.beginPath();
+            ctx.moveTo(o.x, o.y + o.h);
+            ctx.lineTo(o.x + 10, o.y + 10);
+            ctx.lineTo(o.x + 28, o.y);
+            ctx.lineTo(o.x + o.w, o.y + 15);
+            ctx.lineTo(o.x + o.w - 8, o.y + o.h);
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = "rgba(200,180,255,0.1)";
+            ctx.beginPath();
+            ctx.ellipse(o.x + 15, o.y + 8, 10, 5, 0, 0, Math.PI*2);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = theme.rockColor || "#7a8a9a";
+            ctx.beginPath();
+            ctx.moveTo(o.x, o.y + o.h);
+            ctx.lineTo(o.x + 10, o.y + 10);
+            ctx.lineTo(o.x + 28, o.y);
+            ctx.lineTo(o.x + o.w, o.y + 15);
+            ctx.lineTo(o.x + o.w - 8, o.y + o.h);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }else{
+        if(isSpace){
+            ctx.fillStyle = "#3a7a5a";
+            if(!isTelegramMiniApp){
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "rgba(100,200,150,0.15)";
+            }
+            ctx.fillRect(o.x + 9, o.y, 14, o.h);
+            ctx.fillRect(o.x, o.y + 20, 13, 11);
+            ctx.fillRect(o.x + 20, o.y + 38, 13, 11);
+            ctx.fillStyle = "#2a6a4a";
+            ctx.fillRect(o.x + 12, o.y + 5, 8, 5);
+            ctx.fillRect(o.x + 3, o.y + 25, 7, 4);
+            ctx.fillRect(o.x + 22, o.y + 43, 7, 4);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = "rgba(100,255,200,0.08)";
+            ctx.beginPath();
+            ctx.ellipse(o.x + 16, o.y + 8, 6, 3, 0, 0, Math.PI*2);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = "#25834a";
+            ctx.fillRect(o.x + 9, o.y, 14, o.h);
+            ctx.fillRect(o.x, o.y + 20, 13, 11);
+            ctx.fillRect(o.x + 20, o.y + 38, 13, 11);
+        }
+    }
+}
+
+// ============================================
+// توابع آپدیت
+// ============================================
+function updatePowerupTimers() {
+    shieldTimerItem.classList.add('hidden-timer');
+    speedTimerItem.classList.add('hidden-timer');
+    gemTimerItem.classList.add('hidden-timer');
+    
+    let anyActive = false;
+    
+    if (shieldActive) {
+        shieldTimerItem.classList.remove('hidden-timer');
+        shieldTimeDisplay.textContent = Math.ceil(shieldTimer);
+        anyActive = true;
+    }
+    
+    if (speedBoostActive) {
+        speedTimerItem.classList.remove('hidden-timer');
+        speedTimeDisplay.textContent = Math.ceil(speedBoostTimer);
+        anyActive = true;
+    }
+    
+    if (gemActive) {
+        gemTimerItem.classList.remove('hidden-timer');
+        gemTimeDisplay.textContent = Math.ceil(gemTimer);
+        anyActive = true;
+    }
+    
+    if (anyActive) {
+        powerupTimer.classList.remove('hidden');
+    } else {
+        powerupTimer.classList.add('hidden');
+    }
+}
+
+function update(dt){
+    gameTime += dt;
+    updateSpeed();
+
+    fox.vy += fox.gravity * dt;
+    fox.y += fox.vy * dt;
+    if(fox.y + fox.h >= ground()){
+        fox.y = ground() - fox.h;
+        fox.vy = 0;
+        fox.grounded = true;
+    }
+    fox.animation += dt * 15;
+
+    updateDayNight();
+
+    // استفاده از فاصله‌های زمانی بهینه‌شده برای تلگرام
+    const eggInterval = TELEGRAM_OPTIMIZATIONS.eggInterval;
+    eggTimer -= dt;
+    if(eggTimer <= 0){
+        createEgg();
+        eggTimer = eggInterval + Math.random() * 0.4;
+    }
+    
+    for(let i = eggs.length - 1; i >= 0; i--){
+        const e = eggs[i];
+        e.x -= speed * dt;
+        if(collision(fox,e)){
+            collectEgg(e);
+            eggs.splice(i, 1);
+            continue;
+        }
+        if(e.x < -60) eggs.splice(i, 1);
+    }
+
+    const obstacleInterval = TELEGRAM_OPTIMIZATIONS.obstacleInterval;
+    obstacleTimer -= dt;
+    if(obstacleTimer <= 0){
+        createObstacle();
+        obstacleTimer = obstacleInterval + Math.random() * 0.55;
+    }
+    for(let i = obstacles.length - 1; i >= 0; i--){
+        const o = obstacles[i];
+        o.x -= speed * dt;
+        if(collision(fox,o)){
+            if(shieldActive && shieldHits > 0) {
+                shieldHits--;
+                if(shieldHits === 0) shieldActive = false;
+                obstacles.splice(i, 1);
+                for(let j=0; j<(isTelegramMiniApp ? 5 : 10); j++) {
+                    createParticle(o.x + o.w/2, o.y + o.h/2, '#4fc3f7', 'sparkle');
+                }
+                continue;
+            }
+            endGame();
+            return;
+        }
+        if(o.x < -80) obstacles.splice(i, 1);
+    }
+
+    powerupTimerValue -= dt;
+    if (powerupTimerValue <= 0) {
+        trySpawnPowerup();
+        powerupTimerValue = 2 + Math.random() * 3;
+    }
+    
+    for(let i = powerups.length - 1; i >= 0; i--){
+        const p = powerups[i];
+        p.x -= speed * dt;
+        if(collision(fox, p)){
+            applyPowerup(p.type);
+            powerups.splice(i, 1);
+            continue;
+        }
+        if(p.x < -60) powerups.splice(i, 1);
+    }
+    
+    if (shieldActive) {
+        shieldTimer -= dt;
+        if (shieldTimer <= 0) {
+            shieldActive = false;
+            shieldTimer = 0;
+            if (shieldTimeout) {
+                clearTimeout(shieldTimeout);
+                shieldTimeout = null;
+            }
+            showToast(language === 'fa' ? '🛡️ سپر تمام شد!' : '🛡️ Shield ended!');
+        }
+    }
+
+    if (speedBoostActive) {
+        speedBoostTimer -= dt;
+        if (speedBoostTimer <= 0) {
+            speedBoostActive = false;
+            speedBoostTimer = 0;
+            showToast(language === 'fa' ? '⚡ سرعت تمام شد!' : '⚡ Speed ended!');
+        }
+    }
+    
+    if (gemActive) {
+        gemTimer -= dt;
+        if (gemTimer <= 0) {
+            gemActive = false;
+            gemTimer = 0;
+            showToast(language === 'fa' ? '💎 جواهر تمام شد!' : '💎 Gem ended!');
+        }
+    }
+
+    updatePowerupTimers();
+
+    document.getElementById('shieldIndicator').style.display = shieldActive ? 'block' : 'none';
+    document.getElementById('speedIndicator').style.display = speedBoostActive ? 'block' : 'none';
+    document.getElementById('gemIndicator').style.display = gemActive ? 'block' : 'none';
+
+    if(combo > 0){
+        comboTimer -= dt;
+        if(comboTimer <= 0){
+            combo = 0;
+            comboBox.classList.remove("show");
+        }
+    }
+    
+    updateParticles(dt);
+}
+
+function applyPowerup(type) {
+    const fa = language === 'fa';
+    let msg = '';
+    
+    switch(type) {
+        case 'shield':
+            shieldActive = true;
+            shieldHits = 1;
+            shieldTimer = 15;
+            msg = fa ? '🛡️ سپر فعال شد!' : '🛡️ Shield activated!';
+            const shieldParticleCount = isTelegramMiniApp ? 8 : 15;
+            for(let i=0; i<shieldParticleCount; i++) {
+                createParticle(fox.x + fox.w/2, fox.y + fox.h/2, '#4fc3f7', 'sparkle');
+            }
+            if (shieldTimeout) clearTimeout(shieldTimeout);
+            break;
+        case 'speed':
+            speedBoostActive = true;
+            speedBoostTimer = 15;
+            msg = fa ? '⚡ افزایش سرعت!' : '⚡ Speed boost!';
+            const speedParticleCount = isTelegramMiniApp ? 8 : 15;
+            for(let i=0; i<speedParticleCount; i++) {
+                createParticle(fox.x + fox.w/2, fox.y + fox.h/2, '#ffd54f', 'sparkle');
+            }
+            break;
+        case 'gem':
+            gemActive = true;
+            gemTimer = 12;
+            msg = fa ? '💎 تخم‌های باارزش!' : '💎 Gem eggs!';
+            const gemParticleCount = isTelegramMiniApp ? 8 : 15;
+            for(let i=0; i<gemParticleCount; i++) {
+                createParticle(fox.x + fox.w/2, fox.y + fox.h/2, '#f472b6', 'sparkle');
+            }
+            break;
+    }
+    updatePowerupTimers();
+    showToast(msg);
+}
+
+function collectEgg(e){
+    combo++;
+    comboTimer = 2;
+    let multiplier = 1;
+    if(combo >= 10) multiplier = 3;
+    else if(combo >= 5) multiplier = 2;
+    
+    let earned = e.value * multiplier;
+    if (gemActive) {
+        earned = earned * 1.5;
+    }
+    
+    score += earned;
+    totalEggs += 1;
+    totalScore += earned;
+    saveWallet();
+    updateSpeed();
+    updateDayNight();
+    updateUI();
+    
+    if(combo >= 2){
+        comboBox.classList.add("show");
+        comboValue.textContent = combo;
+    }
+    
+    const skin = getSkin(currentSkinId);
+    const renderEffect = shouldRenderEffect(skin.effect);
+    
+    if (renderEffect && skin.effect === 'snow_particles') {
+        const count = isTelegramMiniApp ? 4 : 8;
+        for (let i = 0; i < count; i++) {
+            createParticle(e.x + e.w/2, e.y + e.h/2, '#93c5fd', 'snow');
+        }
+    }
+    if (renderEffect && skin.effect === 'sparkles') {
+        const count = isTelegramMiniApp ? 6 : 12;
+        for (let i = 0; i < count; i++) {
+            createParticle(e.x + e.w/2, e.y + e.h/2, '#fcd34d', 'sparkle');
+        }
+    }
+    if (renderEffect && skin.effect === 'galaxy_stars') {
+        const count = isTelegramMiniApp ? 5 : 10;
+        for (let i = 0; i < count; i++) {
+            createParticle(e.x + e.w/2, e.y + e.h/2, '#818cf8', 'sparkle');
+        }
+    }
+}
+
+// ============================================
+// حلقه اصلی بازی با محدودیت فریم برای تلگرام
+// ============================================
+let frameCounter = 0;
+const frameSkip = TELEGRAM_OPTIMIZATIONS.frameSkip;
+
+function loop(time){
+    if(!playing) return;
+    
+    frameCounter++;
+    if (frameCounter % frameSkip !== 0) {
+        requestAnimationFrame(loop);
+        return;
+    }
+    
+    let dt = (time - lastTime) / 1000;
+    lastTime = time;
+    if(dt > .033) dt = .033;
+    update(dt);
+    draw();
+    if(playing) requestAnimationFrame(loop);
+}
+
+function draw(){
+    drawBackground();
+    for(const e of eggs) drawEgg(e);
+    for(const o of obstacles) drawObstacle(o);
+    for(const p of powerups) drawPowerup(p);
+    drawParticles();
+    drawFox();
+}
+
+// ============================================
+// توابع کنترل بازی
+// ============================================
+function startGame(){
+    stopMusicTimer();
+    bgCacheValid = false;
+    score = 0;
+    speed = 330;
+    eggTimer = .3;
+    obstacleTimer = 1;
+    combo = 0;
+    comboTimer = 0;
+    eggs.length = 0;
+    obstacles.length = 0;
+    powerups.length = 0;
+    particles.length = 0;
+    trailPositions.length = 0;
+    lastDayCycle = -1;
+    isNight = false;
+    gameTime = 0;
+    shieldActive = false;
+    shieldHits = 0;
+    shieldTimer = 0;
+    speedBoostActive = false;
+    speedBoostTimer = 0;
+    gemActive = false;
+    gemTimer = 0;
+    powerupTimerValue = 2;
+    if (shieldTimeout) {
+        clearTimeout(shieldTimeout);
+        shieldTimeout = null;
+    }
+    gamesPlayed++;
+    saveWallet();
+    updateUI();
+    comboBox.classList.remove("show");
+    document.getElementById('shieldIndicator').style.display = 'none';
+    document.getElementById('speedIndicator').style.display = 'none';
+    document.getElementById('gemIndicator').style.display = 'none';
+    powerupTimer.classList.add('hidden');
+    resetFox();
+    playing = true;
+    menuButton.style.display = "none";
+    menuPanel.style.display = "none";
+    startScreen.style.display = "none";
+    gameOver.style.display = "none";
+    themeSelectorOverlay.style.display = "none";
+    startMusic();
+    frameCounter = 0;
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+}
+
+function endGame(){
+    playing = false;
+    stopMusic();
+    finalScore.textContent = score;
+    if(score > best){
+        best = score;
+        recordText.style.display = "block";
+        saveWallet();
+    }else{
+        recordText.style.display = "none";
+    }
+    updateUI();
+    menuButton.style.display = "block";
+    gameOver.style.display = "flex";
+    powerupTimer.classList.add('hidden');
+    bgCacheValid = false;
+}
+
+function handleInput(){
+    if(!playing) startGame();
+    else jump();
+}
+
+// ============================================
+// توابع referral
+// ============================================
 function saveReferralToLocalStorage(refCode, userId) {
     try {
         let stored = JSON.parse(localStorage.getItem('fox_referrals')) || {};
@@ -1332,1590 +3087,9 @@ function showReferralPrompt() {
     setTimeout(() => input.focus(), 200);
 }
 
-let audioContext = null;
-let musicMaster = null;
-let musicTimer = null;
-let musicStep = 0;
-let soundEnabled = localStorage.getItem("foxSound") !== "off";
-
-function initAudio(){
-    if(audioContext) return;
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if(!AudioCtx) return;
-    audioContext = new AudioCtx();
-    musicMaster = audioContext.createGain();
-    musicMaster.gain.value = soundEnabled ? 0.075 : 0;
-    musicMaster.connect(audioContext.destination);
-}
-
-function playTone(frequency, duration, type="square", volume=.08, delay=0){
-    if(!audioContext || !soundEnabled) return;
-    const now = audioContext.currentTime + delay;
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(frequency, now);
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(volume, now + .008);
-    gain.gain.exponentialRampToValueAtTime(.001, now + duration);
-    oscillator.connect(gain);
-    gain.connect(musicMaster);
-    oscillator.start(now);
-    oscillator.stop(now + duration + .03);
-}
-
-function playKick(){
-    if(!audioContext || !soundEnabled) return;
-    const now = audioContext.currentTime;
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(120, now);
-    oscillator.frequency.exponentialRampToValueAtTime(45, now + .12);
-    gain.gain.setValueAtTime(.12, now);
-    gain.gain.exponentialRampToValueAtTime(.001, now + .14);
-    oscillator.connect(gain);
-    gain.connect(musicMaster);
-    oscillator.start(now);
-    oscillator.stop(now + .15);
-}
-
-function playHat(){
-    if(!audioContext || !soundEnabled) return;
-    const buffer = audioContext.createBuffer(1, audioContext.sampleRate * .035, audioContext.sampleRate);
-    const data = buffer.getChannelData(0);
-    for(let i=0;i<data.length;i++) data[i] = Math.random() * 2 - 1;
-    const source = audioContext.createBufferSource();
-    const gain = audioContext.createGain();
-    gain.gain.value = .025;
-    source.buffer = buffer;
-    source.connect(gain);
-    gain.connect(musicMaster);
-    source.start();
-}
-
-const melody = [523.25, 659.25, 783.99, 659.25, 587.33, 698.46, 880.00, 698.46, 523.25, 659.25, 783.99, 987.77, 880.00, 783.99, 659.25, 587.33];
-
-function musicTick(){
-    if(!playing || !soundEnabled) return;
-    const note = melody[musicStep % melody.length];
-    playTone(note, .17, "square", .055);
-    if(musicStep % 2 === 0) playHat();
-    if(musicStep % 4 === 0) playKick();
-    if(musicStep % 8 === 7) playTone(note / 2, .28, "triangle", .035, .02);
-    musicStep++;
-}
-
-function startMusic(){
-    initAudio();
-    if(!audioContext || !musicMaster) return;
-    if(audioContext.state === "suspended") audioContext.resume();
-    musicMaster.gain.cancelScheduledValues(audioContext.currentTime);
-    musicMaster.gain.setTargetAtTime(soundEnabled ? 0.075 : 0, audioContext.currentTime, 0.03);
-    stopMusicTimer();
-    musicStep = 0;
-    if(soundEnabled) musicTick();
-    musicTimer = setInterval(musicTick, 190);
-}
-
-function stopMusicTimer(){
-    if(musicTimer){ clearInterval(musicTimer); musicTimer = null; }
-}
-
-function stopMusic(){
-    stopMusicTimer();
-    if(musicMaster && audioContext){
-        musicMaster.gain.cancelScheduledValues(audioContext.currentTime);
-        musicMaster.gain.setTargetAtTime(0, audioContext.currentTime, 0.03);
-    }
-}
-
-function enableSound(){
-    soundEnabled = true;
-    localStorage.setItem("foxSound", "on");
-    initAudio();
-    if(musicMaster && audioContext){
-        musicMaster.gain.cancelScheduledValues(audioContext.currentTime);
-        musicMaster.gain.setTargetAtTime(.075, audioContext.currentTime, .04);
-    }
-    if(playing) startMusic();
-    updateSoundButtons();
-}
-
-function disableSound(){
-    soundEnabled = false;
-    localStorage.setItem("foxSound", "off");
-    stopMusic();
-    updateSoundButtons();
-}
-
-function updateSoundButtons(){
-    const onButton = document.getElementById("soundOnButton");
-    const offButton = document.getElementById("soundOffButton");
-    if(language === "fa"){
-        onButton.textContent = soundEnabled ? "🔊 روشن ✓" : "🔊 روشن";
-        offButton.textContent = !soundEnabled ? "🔇 خاموش ✓" : "🔇 خاموش";
-    }else{
-        onButton.textContent = soundEnabled ? "🔊 On ✓" : "🔊 On";
-        offButton.textContent = !soundEnabled ? "🔇 Off ✓" : "🔇 Off";
-    }
-}
-
-function loadNumber(key, defaultValue = 0){
-    try{
-        const value = localStorage.getItem(key);
-        if(value === null){ localStorage.setItem(key, String(defaultValue)); return defaultValue; }
-        const number = Number(value);
-        if(Number.isFinite(number)) return number;
-        localStorage.setItem(key, String(defaultValue));
-        return defaultValue;
-    }catch(error){ return defaultValue; }
-}
-
-function saveWallet(){
-    try{
-        localStorage.setItem("foxBest", String(best));
-        localStorage.setItem("foxGames", String(gamesPlayed));
-        localStorage.setItem("foxEggs", String(totalEggs));
-        localStorage.setItem("foxTotalScore", String(totalScore));
-    }catch(error){}
-}
-
-let best = loadNumber("foxBest");
-let gamesPlayed = loadNumber("foxGames");
-let totalEggs = loadNumber("foxEggs");
-let totalScore = loadNumber("foxTotalScore");
-
-const FOX_SKINS = [
-    { id: 'classic', name: 'Classic Fox', nameFa: 'روباه کلاسیک', color: '#f97316', price: 0, rarity: 'common', effect: null, glowColor: null, eyeColor: '#1a1a2a' },
-    { id: 'ember', name: 'Ember Fox', nameFa: 'روباه آتشین', color: '#ef4444', price: 250000, rarity: 'uncommon', effect: 'fire_trail', glowColor: '#ff6b35', eyeColor: '#fbbf24' },
-    { id: 'frost', name: 'Frost Fox', nameFa: 'روباه یخی', color: '#3b82f6', price: 500000, rarity: 'uncommon', effect: 'snow_particles', glowColor: '#93c5fd', eyeColor: '#ffffff' },
-    { id: 'shadow', name: 'Shadow Fox', nameFa: 'روباه شب', color: '#7c3aed', price: 1000000, rarity: 'rare', effect: 'glow_eyes', glowColor: '#4ade80', eyeColor: '#4ade80' },
-    { id: 'golden', name: 'Golden Fox', nameFa: 'روباه طلایی', color: '#fbbf24', price: 1750000, rarity: 'rare', effect: 'sparkles', glowColor: '#fcd34d', eyeColor: '#b45309' },
-    { id: 'neon', name: 'Neon Fox', nameFa: 'روباه نئونی', color: '#ec4899', price: 2500000, rarity: 'epic', effect: 'neon_glow', glowColor: '#f472b6', eyeColor: '#3b82f6' },
-    { id: 'crystal', name: 'Crystal Fox', nameFa: 'روباه کریستالی', color: '#8b5cf6', price: 4000000, rarity: 'epic', effect: 'crystal_shine', glowColor: '#a78bfa', eyeColor: '#c4b5d4' },
-    { id: 'galaxy', name: 'Galaxy Fox', nameFa: 'روباه کهکشانی', color: '#1e1b4b', price: 7500000, rarity: 'legendary', effect: 'galaxy_stars', glowColor: '#818cf8', eyeColor: '#c7d2fe' },
-    { id: 'rainbow', name: 'Rainbow Fox', nameFa: 'روباه رنگین‌کمان', color: 'rainbow', price: 12500000, rarity: 'legendary', effect: 'rainbow_shift', glowColor: null, eyeColor: '#ffffff' },
-    { id: 'phoenix', name: 'Phoenix Fox', nameFa: 'روباه ققنوس', color: '#dc2626', price: 25000000, rarity: 'mythic', effect: 'phoenix_flames', glowColor: '#f97316', eyeColor: '#fcd34d' }
-];
-
-let currentSkinId = localStorage.getItem('foxSkin') || 'classic';
-let purchasedSkins = JSON.parse(localStorage.getItem('purchasedSkins') || '["classic"]');
-
-function getSkin(id) {
-    return FOX_SKINS.find(s => s.id === id) || FOX_SKINS[0];
-}
-
-function isSkinOwned(id) {
-    return purchasedSkins.includes(id);
-}
-
-function isSkinActive(id) {
-    return currentSkinId === id;
-}
-
-function getRarityLabel(rarity) {
-    const labels = {
-        'common': { fa: 'معمولی', en: 'Common' },
-        'uncommon': { fa: 'نادر', en: 'Uncommon' },
-        'rare': { fa: 'کمیاب', en: 'Rare' },
-        'epic': { fa: 'حماسی', en: 'Epic' },
-        'legendary': { fa: 'افسانه‌ای', en: 'Legendary' },
-        'mythic': { fa: 'اسطوره‌ای', en: 'Mythic' }
-    };
-    return labels[rarity] ? (language === 'fa' ? labels[rarity].fa : labels[rarity].en) : rarity;
-}
-
-function getEffect(effect) {
-    const effects = {
-        'fire_trail': 'Fire Trail',
-        'snow_particles': 'Snow Particles',
-        'glow_eyes': 'Glowing Eyes',
-        'sparkles': 'Sparkles',
-        'neon_glow': 'Neon Glow',
-        'crystal_shine': 'Crystal Shine',
-        'galaxy_stars': 'Galaxy Stars',
-        'rainbow_shift': 'Rainbow Shift',
-        'phoenix_flames': 'Phoenix Flames'
-    };
-    return effects[effect] || '';
-}
-
-function getEffectFa(effect) {
-    const effects = {
-        'fire_trail': 'رد آتش',
-        'snow_particles': 'ذرات برف',
-        'glow_eyes': 'چشم‌های درخشان',
-        'sparkles': 'جرقه‌های طلایی',
-        'neon_glow': 'درخشش نئون',
-        'crystal_shine': 'خطوط کریستال',
-        'galaxy_stars': 'ستاره‌های کهکشان',
-        'rainbow_shift': 'تغییر رنگ مداوم',
-        'phoenix_flames': 'پرهای آتشین'
-    };
-    return effects[effect] || '';
-}
-
-function renderSkinShop() {
-    const grid = document.getElementById('skinShopGrid');
-    if (!grid) return;
-    
-    const fa = language === 'fa';
-    const ownedCount = purchasedSkins.length;
-    document.getElementById('skinCount').textContent = ownedCount + '/' + FOX_SKINS.length;
-    document.getElementById('totalScoreDisplay').textContent = totalScore.toLocaleString();
-    
-    const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
-    const rarityLabels = {
-        common: { fa: '⚪ معمولی', en: '⚪ Common', color: '#6b7280' },
-        uncommon: { fa: '🟢 نادر', en: '🟢 Uncommon', color: '#22c55e' },
-        rare: { fa: '🔵 کمیاب', en: '🔵 Rare', color: '#3b82f6' },
-        epic: { fa: '🟣 حماسی', en: '🟣 Epic', color: '#8b5cf6' },
-        legendary: { fa: '🟠 افسانه‌ای', en: '🟠 Legendary', color: '#f59e0b' },
-        mythic: { fa: '🔴 اسطوره‌ای', en: '🔴 Mythic', color: '#ef4444' }
-    };
-    
-    let html = '';
-    
-    rarityOrder.forEach(rarity => {
-        const skinsInRarity = FOX_SKINS.filter(s => s.rarity === rarity);
-        if (skinsInRarity.length === 0) return;
-        
-        const label = fa ? rarityLabels[rarity].fa : rarityLabels[rarity].en;
-        const color = rarityLabels[rarity].color;
-        
-        html += `<div style="margin-top:12px;margin-bottom:6px;">`;
-        html += `<div style="font-size:11px;font-weight:bold;color:${color};letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:4px;">${label}</div>`;
-        html += `<div style="display:grid;grid-template-columns:repeat(${skinsInRarity.length === 1 ? 1 : 2},1fr);gap:6px;margin-top:6px;">`;
-        
-        skinsInRarity.forEach(skin => {
-            const owned = isSkinOwned(skin.id);
-            const active = isSkinActive(skin.id);
-            const canBuy = totalScore >= skin.price && !owned;
-            const isFree = skin.price === 0;
-            
-            const colorStyle = skin.id === 'rainbow' 
-                ? 'linear-gradient(45deg,red,orange,yellow,green,blue,indigo,violet)' 
-                : skin.color;
-            
-            let statusText = '';
-            let statusColor = '';
-            let bgColor = 'rgba(255,255,255,0.03)';
-            let borderColor = 'rgba(255,255,255,0.06)';
-            
-            if (active) {
-                statusText = fa ? '✓ فعال' : '✓ Active';
-                statusColor = '#4ade80';
-                bgColor = 'rgba(74,222,128,0.1)';
-                borderColor = '#4ade80';
-            } else if (owned) {
-                statusText = fa ? '✅ خریداری شده' : '✅ Owned';
-                statusColor = '#60a5fa';
-                bgColor = 'rgba(96,165,250,0.08)';
-                borderColor = 'rgba(96,165,250,0.3)';
-            } else if (isFree) {
-                statusText = fa ? 'رایگان' : 'Free';
-                statusColor = '#fbbf24';
-            } else if (canBuy) {
-                statusText = '💰 ' + skin.price.toLocaleString();
-                statusColor = '#fbbf24';
-            } else {
-                statusText = '🔒 ' + skin.price.toLocaleString();
-                statusColor = '#ef4444';
-                bgColor = 'rgba(239,68,68,0.05)';
-            }
-            
-            const rarityLabel = fa ? getRarityLabel(skin.rarity) : getRarityLabel(skin.rarity);
-            const effectLabel = fa ? getEffectFa(skin.effect) : getEffect(skin.effect);
-            
-            html += `
-                <div class="skin-option ${active ? 'active' : ''} ${owned ? 'owned' : ''} ${!owned && !canBuy && !isFree ? 'locked' : ''}" 
-                     data-skin="${skin.id}"
-                     style="background:${bgColor};border:2px solid ${borderColor};border-radius:10px;padding:8px;text-align:center;cursor:${(owned || canBuy || isFree) ? 'pointer' : 'not-allowed'};transition:all 0.2s;position:relative;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                        <span style="font-size:10px;color:${statusColor};">${statusText}</span>
-                        <span style="font-size:8px;color:rgba(255,255,255,0.2);">${rarityLabel}</span>
-                    </div>
-                    <div style="width:36px;height:36px;border-radius:50%;margin:0 auto 4px;background:${colorStyle};border:2px solid rgba(255,255,255,0.1);box-shadow:${active ? '0 0 15px rgba(249,115,22,0.3)' : 'none'};"></div>
-                    <div style="font-size:11px;font-weight:bold;color:white;">${fa ? skin.nameFa : skin.name}</div>
-                    ${effectLabel ? `<div style="font-size:8px;color:rgba(255,255,255,0.3);">${effectLabel}</div>` : '<div style="font-size:8px;color:rgba(255,255,255,0.15);">—</div>'}
-                    ${active ? '<div style="position:absolute;top:-4px;right:-4px;font-size:12px;">⭐</div>' : ''}
-                </div>
-            `;
-        });
-        
-        html += `</div></div>`;
-    });
-    
-    grid.innerHTML = html;
-    
-    document.querySelectorAll('.skin-option').forEach(el => {
-        el.addEventListener('click', function() {
-            const skinId = this.dataset.skin;
-            if (!this.classList.contains('locked')) {
-                handleSkinClick(skinId);
-            } else {
-                const fa = language === 'fa';
-                showToast(fa ? '❌ امتیاز کافی نیست!' : '❌ Not enough points!');
-            }
-        });
-    });
-}
-
-function handleSkinClick(skinId) {
-    const skin = getSkin(skinId);
-    if (!skin) return;
-    
-    const owned = isSkinOwned(skinId);
-    const fa = language === 'fa';
-    
-    if (owned) {
-        currentSkinId = skinId;
-        localStorage.setItem('foxSkin', skinId);
-        renderSkinShop();
-        updateUI();
-        if (!playing) {
-            drawBackground();
-            drawFox();
-        }
-        showToast((fa ? '✅ رنگ ' : '✅ Skin ') + (fa ? skin.nameFa : skin.name) + (fa ? ' انتخاب شد!' : ' selected!'));
-        return;
-    }
-    
-    if (skin.price === 0) {
-        purchasedSkins.push(skinId);
-        localStorage.setItem('purchasedSkins', JSON.stringify(purchasedSkins));
-        currentSkinId = skinId;
-        localStorage.setItem('foxSkin', skinId);
-        renderSkinShop();
-        updateUI();
-        if (!playing) {
-            drawBackground();
-            drawFox();
-        }
-        showToast((fa ? '✅ رنگ ' : '✅ Skin ') + (fa ? skin.nameFa : skin.name) + (fa ? ' فعال شد!' : ' activated!'));
-        return;
-    }
-    
-    if (totalScore >= skin.price) {
-        if (confirm((fa ? 'آیا مطمئنی می‌خوای رنگ "' : 'Buy skin "') + (fa ? skin.nameFa : skin.name) + '" ' + (fa ? 'را به قیمت ' : 'for ') + skin.price.toLocaleString() + (fa ? ' امتیاز بخری؟' : ' points?'))) {
-            totalScore -= skin.price;
-            purchasedSkins.push(skinId);
-            localStorage.setItem('purchasedSkins', JSON.stringify(purchasedSkins));
-            currentSkinId = skinId;
-            localStorage.setItem('foxSkin', skinId);
-            saveWallet();
-            renderSkinShop();
-            updateUI();
-            if (!playing) {
-                drawBackground();
-                drawFox();
-            }
-            showToast((fa ? '✅ رنگ "' : '✅ Skin "') + (fa ? skin.nameFa : skin.name) + '" ' + (fa ? 'خریداری شد!' : 'purchased!'));
-        }
-    } else {
-        showToast((fa ? '❌ امتیاز کافی نیست! نیاز به ' : '❌ Not enough points! Need ') + skin.price.toLocaleString() + (fa ? ' امتیاز' : ' points'));
-    }
-}
-
-function showToast(msg) {
-    const toast = document.getElementById('toast');
-    toast.textContent = msg;
-    toast.style.display = 'block';
-    toast.className = '';
-    void toast.offsetWidth;
-    toast.style.animation = 'fadeInUp 0.3s ease';
-    clearTimeout(toast._timeout);
-    toast._timeout = setTimeout(() => {
-        toast.style.animation = 'fadeOutDown 0.3s ease';
-        setTimeout(() => {
-            toast.style.display = 'none';
-        }, 300);
-    }, 2500);
-}
-
-let currentTheme = localStorage.getItem("foxTheme") || "classic";
-
-const themeConfigs = {
-    classic: {
-        id: "classic",
-        icon: "☀️",
-        nameEn: "Classic",
-        nameFa: "کلاسیک",
-        descEn: "Original summer",
-        descFa: "تابستانی اصلی",
-        skyDay: ["#87CEEB", "#a8d8f0", "#c8e8f5"],
-        skyNight: ["#0a1525", "#152535", "#1a2a40"],
-        groundDay: ["#7dbb4b", "#6aaa3a", "#55963b"],
-        groundNight: ["#2a3a2a", "#1a2a1a", "#0a1a0a"],
-        eggColors: [
-            ["#ffffff", 1], ["#45d46b", 2], ["#3498db", 5], ["#a855f7", 10], ["#ffd43b", 25]
-        ],
-        foxColor: "#f97316",
-        treeColor: "#6a4a2a",
-        rockColor: "#7a8a9a",
-        isSpace: false
-    },
-    city: {
-        id: "city",
-        icon: "🏙️",
-        nameEn: "City",
-        nameFa: "شهری",
-        descEn: "Urban streets",
-        descFa: "خیابان‌های شهری",
-        skyDay: ["#b8c8d8", "#d0dce8", "#e0e8f0"],
-        skyNight: ["#0a1520", "#15202a", "#1a2a3a"],
-        groundDay: ["#8a9aa8", "#7a8a98", "#6a7a88"],
-        groundNight: ["#3a4a5a", "#2a3a4a", "#1a2a3a"],
-        eggColors: [
-            ["#e8eef0", 1], ["#b8c8d8", 2], ["#8898a8", 5], ["#5a6a7a", 10], ["#c8d8e0", 25]
-        ],
-        foxColor: "#d47a3a",
-        treeColor: "#6a4a2a",
-        rockColor: "#7a8a9a",
-        isSpace: false
-    },
-    beach: {
-        id: "beach",
-        icon: "🏖️",
-        nameEn: "Beach",
-        nameFa: "ساحلی",
-        descEn: "Sun & sand",
-        descFa: "آفتاب و شن",
-        skyDay: ["#87CEEB", "#b0d8f0", "#d0e8f5"],
-        skyNight: ["#0a1a2a", "#152535", "#1a2a40"],
-        groundDay: ["#f0d8a0", "#e8c888", "#d4b070"],
-        groundNight: ["#5a4a2a", "#4a3a1a", "#3a2a10"],
-        eggColors: [
-            ["#f5e8c8", 1], ["#f0c878", 2], ["#e8a848", 5], ["#d48838", 10], ["#f5d898", 25]
-        ],
-        foxColor: "#d47a3a",
-        treeColor: "#6a5a3a",
-        rockColor: "#b8a888",
-        isSpace: false
-    },
-    forest: {
-        id: "forest",
-        icon: "🌲",
-        nameEn: "Forest",
-        nameFa: "جنگلی",
-        descEn: "Deep woods",
-        descFa: "جنگل انبوه",
-        skyDay: ["#6a9a6a", "#7aaa7a", "#8aba8a"],
-        skyNight: ["#0a1a0a", "#152a15", "#1a3a1a"],
-        groundDay: ["#3a5a2a", "#2a4a1a", "#1a3a0a"],
-        groundNight: ["#1a2a0a", "#0a1a0a", "#050a00"],
-        eggColors: [
-            ["#d4e8c8", 1], ["#a8c878", 2], ["#6a9a3a", 5], ["#3a6a1a", 10], ["#c8e8a8", 25]
-        ],
-        foxColor: "#d47a3a",
-        treeColor: "#3a2a1a",
-        rockColor: "#5a6a4a",
-        isSpace: false
-    },
-    space: {
-        id: "space",
-        icon: "🚀",
-        nameEn: "Space",
-        nameFa: "فضایی",
-        descEn: "Galaxy fox",
-        descFa: "روباه کهکشانی",
-        skyDay: ["#1a0a3a", "#2a1a4a", "#3a2a5a"],
-        skyNight: ["#0a0a1a", "#0a0a2a", "#1a0a2a"],
-        groundDay: ["#3a2a4a", "#4a3a5a", "#5a4a6a"],
-        groundNight: ["#1a0a2a", "#0a0a1a", "#05000a"],
-        eggColors: [
-            ["#c8a8e8", 1], ["#a878d8", 2], ["#f0d060", 5], ["#6a3a9a", 10], ["#e8e0f0", 25]
-        ],
-        foxColor: "#a878d8",
-        treeColor: "#4a2a6a",
-        rockColor: "#5a4a6a",
-        isSpace: true
-    },
-    night: {
-        id: "night",
-        icon: "🌙",
-        nameEn: "Night",
-        nameFa: "شب",
-        descEn: "Dark & stars",
-        descFa: "تاریک و ستاره‌ها",
-        skyDay: ["#1a1a2e", "#16213e", "#0f3460"],
-        skyNight: ["#0a0a1a", "#0a0a2a", "#1a0a2a"],
-        groundDay: ["#2a2a3a", "#1a1a2a", "#0a0a1a"],
-        groundNight: ["#1a0a2a", "#0a0a1a", "#05000a"],
-        eggColors: [
-            ["#e8e0f0", 1], ["#c8b8e8", 2], ["#a898d8", 5], ["#8878c8", 10], ["#d8c8f0", 25]
-        ],
-        foxColor: "#d47a3a",
-        treeColor: "#3a2a5a",
-        rockColor: "#5a4a6a",
-        isSpace: false
-    }
-};
-
-function getTheme() {
-    return themeConfigs[currentTheme] || themeConfigs.classic;
-}
-
-function getThemeName(themeId) {
-    const t = themeConfigs[themeId];
-    if (!t) return themeId;
-    return language === 'fa' ? t.nameFa : t.nameEn;
-}
-
-function getThemeDesc(themeId) {
-    const t = themeConfigs[themeId];
-    if (!t) return '';
-    return language === 'fa' ? t.descFa : t.descEn;
-}
-
-function setTheme(themeId) {
-    if (!themeConfigs[themeId]) return;
-    currentTheme = themeId;
-    localStorage.setItem("foxTheme", themeId);
-    updateThemeUI();
-    if (!playing) {
-        drawBackground();
-        drawFox();
-    }
-}
-
-function updateThemeUI() {
-    const theme = getTheme();
-    const name = language === 'fa' ? theme.nameFa : theme.nameEn;
-    currentThemeDisplay.textContent = name;
-    startThemeLabel.textContent = language === 'fa' ? 'تغییر تم' : 'Change Theme';
-    
-    document.querySelectorAll('.theme-option').forEach(opt => {
-        const tid = opt.dataset.theme;
-        const t = themeConfigs[tid];
-        if (!t) return;
-        const isActive = tid === currentTheme;
-        opt.classList.toggle('active', isActive);
-        opt.querySelector('.name').textContent = language === 'fa' ? t.nameFa : t.nameEn;
-        opt.querySelector('.desc').textContent = language === 'fa' ? t.descFa : t.descEn;
-    });
-    
-    document.getElementById('themeSelectorTitle').textContent = language === 'fa' ? '🎨 انتخاب تم' : '🎨 Select Theme';
-    document.getElementById('themeSelectorSub').textContent = language === 'fa' ? 'سبک ماجراجویی خود را انتخاب کنید' : 'Choose your adventure style';
-    document.getElementById('applyThemeText').textContent = language === 'fa' ? 'اعمال تم' : 'Apply Theme';
-    document.getElementById('changeThemeLabel').textContent = language === 'fa' ? 'تغییر تم' : 'Change Theme';
-}
-
-let language = localStorage.getItem("foxLanguage") || "en";
-
-function applyLanguage(){
-    const fa = language === "fa";
-    document.documentElement.lang = fa ? "fa" : "en";
-    document.documentElement.dir = fa ? "rtl" : "ltr";
-
-    document.getElementById("menuTitle").textContent = fa ? "منو" : "Menu";
-    document.getElementById("languageTitle").textContent = fa ? "زبان" : "Language";
-    document.getElementById("soundTitle").textContent = fa ? "صدا" : "Sound";
-    document.getElementById("themeMenuTitle").textContent = fa ? "🎨 تم" : "🎨 Theme";
-    document.getElementById("gamesLabel").textContent = fa ? "تعداد بازی‌ها" : "Games Played";
-    document.getElementById("bestLabel").textContent = fa ? "رکورد" : "Best Score";
-    document.getElementById("eggsLabel").textContent = fa ? "کل تخم‌های جمع‌شده" : "Total Eggs";
-    document.getElementById("walletScoreLabel").textContent = fa ? "امتیاز کل" : "Total Score";
-    document.getElementById("referralCodeLabel").textContent = fa ? "کد دعوت من" : "My Invite Code";
-    document.getElementById("referralCountLabel").textContent = fa ? "زیرمجموعه‌ها" : "Referrals";
-    document.getElementById("skinShopTitle").textContent = fa ? "🎨 پوست روباه" : "🎨 Fox Skins";
-    
-    document.getElementById("rewardTitle").textContent = fa ? "💰 سیستم جوایز" : "💰 Reward System";
-    document.getElementById("rewardDesc").innerHTML = fa ? 
-        '✅ امتیازهای شما در <strong>اپ</strong> و <strong>تلگرام</strong> یکی خواهد شد!' : 
-        '✅ Your scores in <strong>App</strong> and <strong>Telegram</strong> will be the same!';
-    document.getElementById("rewardSubDesc").textContent = fa ? 
-        '🔑 امتیازهای مینی‌اپ تلگرام و اپ بعداً یکی میشوند.' : 
-        '🔑 Telegram Mini App and App scores will be merged later.';
-    
-    document.getElementById("startText").textContent = fa ? "تخم‌ها را جمع کن و رکورد بزن!" : "Collect eggs and beat your record!";
-    startButton.textContent = fa ? "شروع بازی" : "Start Game";
-    document.getElementById("controlText").textContent = fa ? "لمس صفحه یا Space برای پرش" : "Tap screen or Space to jump";
-    document.getElementById("gameOverTitle").textContent = fa ? "باختی!" : "Game Over!";
-    document.getElementById("finalScoreLabel").textContent = fa ? "امتیاز:" : "Score:";
-    document.getElementById("gameCountLabel").textContent = fa ? "تعداد بازی‌ها:" : "Games:";
-    document.getElementById("totalEggLabel").textContent = fa ? "کل تخم‌ها:" : "Total Eggs:";
-    restartButton.textContent = fa ? "دوباره بازی کن" : "Play Again";
-    recordText.textContent = fa ? "🏆 رکورد جدید!" : "🏆 New Record!";
-    document.getElementById("startThemeLabel").textContent = fa ? "تغییر تم" : "Change Theme";
-    document.getElementById("changeThemeLabel").textContent = fa ? "تغییر تم" : "Change Theme";
-
-    updateSoundButtons();
-    updateUI();
-    updateThemeUI();
-    renderSkinShop();
-}
-
-function setLanguage(lang){
-    language = lang;
-    localStorage.setItem("foxLanguage", lang);
-    applyLanguage();
-    menuPanel.style.display = "none";
-    const prompt = document.getElementById('referralPrompt');
-    if (prompt) {
-        const oldOverlay = prompt;
-        const parent = oldOverlay.parentNode;
-        if (parent) {
-            parent.removeChild(oldOverlay);
-            showReferralPrompt();
-        }
-    }
-}
-
-function updateUI(){
-    const fa = language === "fa";
-    const scoreLabel = fa ? "امتیاز: " : "Score: ";
-    const bestLabel = fa ? "رکورد: " : "Best: ";
-    
-    scoreText.textContent = scoreLabel + score;
-    bestText.textContent = bestLabel + best;
-    
-    gamesValue.textContent = gamesPlayed;
-    walletBest.textContent = best;
-    walletEggs.textContent = totalEggs;
-    walletScore.textContent = totalScore;
-    finalGames.textContent = gamesPlayed;
-    finalEggs.textContent = totalEggs;
-}
-
-let playing = false;
-let score = 0;
-let speed = 330;
-let lastTime = 0;
-let eggTimer = 0;
-let obstacleTimer = 1;
-let combo = 0;
-let comboTimer = 0;
-let eggs = [];
-let obstacles = [];
-
-let powerups = [];
-let shieldActive = false;
-let shieldHits = 0;
-let shieldTimer = 0;
-let speedBoostActive = false;
-let speedBoostTimer = 0;
-let gemActive = false;
-let gemTimer = 0;
-let powerupTimerValue = 0;
-let gameTime = 0;
-let shieldTimeout = null;
-
-const POWERUP_CONFIG = {
-    shield: { 
-        duration: 15,
-        color: '#4fc3f7', 
-        icon: '🛡️', 
-        spawnRate: 0.02,
-        startTime: 10,
-        maxHits: 1
-    },
-    speed: { 
-        duration: 15,
-        color: '#ffd54f', 
-        icon: '⚡', 
-        spawnRate: 0.02,
-        startTime: 10,
-        speedMultiplier: 1.2  // کاهش یافته از 1.5 به 1.2
-    },
-    gem: { 
-        duration: 12,
-        color: '#f472b6', 
-        icon: '💎', 
-        spawnRate: 0.02,
-        startTime: 10
-    }
-};
-
-let trailPositions = [];
-let particles = [];
-
-function createParticle(x, y, color, type = 'sparkle') {
-    particles.push({
-        x: x,
-        y: y,
-        vx: (Math.random() - 0.5) * 200,
-        vy: (Math.random() - 0.5) * 200 - 50,
-        life: 1,
-        maxLife: 0.5 + Math.random() * 0.5,
-        size: 3 + Math.random() * 5,
-        color: color,
-        type: type
-    });
-}
-
-function updateParticles(dt) {
-    for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.vy += 100 * dt;
-        p.life -= dt / p.maxLife;
-        if (p.life <= 0) {
-            particles.splice(i, 1);
-        }
-    }
-}
-
-function drawParticles() {
-    particles.forEach(p => {
-        ctx.globalAlpha = p.life * 0.8;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-        ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-}
-
-function updateSpeed(){
-    let baseSpeed = 330;
-    if(score <= 600){
-        const progress = Math.max(0, Math.min(score / 600, 1));
-        const smooth = progress * progress * (3 - 2 * progress);
-        baseSpeed = 330 + 870 * smooth;
-    }else{
-        baseSpeed = 1200 + (score - 600) * .12;
-    }
-    // سرعت با ضریب 1.2 (کمتر از قبل)
-    speed = speedBoostActive ? baseSpeed * 1.2 : baseSpeed;
-}
-
-let isNight = false;
-let lastDayCycle = -1;
-
-function updateDayNight(){
-    const cycle = Math.floor(score / 100);
-    isNight = cycle % 2 === 1;
-    if(cycle !== lastDayCycle) lastDayCycle = cycle;
-}
-
-function ground(){ return H * .72; }
-
-const fox = {
-    x:100, y:0, w:62, h:48, vy:0, gravity:2100, jump:-780, grounded:true, animation:0
-};
-
-function resetFox(){
-    fox.x = Math.max(70, W * .14);
-    fox.y = ground() - fox.h;
-    fox.vy = 0;
-    fox.grounded = true;
-    fox.animation = 0;
-}
-
-function getEggColors() {
-    return getTheme().eggColors;
-}
-
-function createEgg(){
-    const eggColors = getEggColors();
-    let r = Math.random();
-    let type = 0;
-    
-    // اگر جواهر فعال باشه، تخم‌های باارزش‌تر ظاهر میشن
-    if (gemActive) {
-        if(r > .3) type = 1;
-        if(r > .6) type = 2;
-        if(r > .8) type = 3;
-        if(r > .92) type = 4;
-    } else {
-        if(r > .55) type = 1;
-        if(r > .78) type = 2;
-        if(r > .91) type = 3;
-        if(r > .98) type = 4;
-    }
-    
-    const data = eggColors[type];
-    eggs.push({
-        x:W + 30,
-        y: ground() - 50 - Math.random() * 130,
-        w:25, h:34,
-        color:data[0],
-        value:data[1]
-    });
-}
-
-function createObstacle(){
-    const r = Math.random();
-    let type;
-    if(r < .45) type = "tree";
-    else if(r < .75) type = "rock";
-    else type = "cactus";
-    let w = 45, h = 65;
-    if(type === "rock"){ w = 55; h = 40; }
-    if(type === "cactus"){ w = 32; h = 62; }
-    obstacles.push({
-        x:W + 40,
-        y:ground() - h,
-        w:w, h:h,
-        type:type
-    });
-}
-
-function createPowerup(type) {
-    const config = POWERUP_CONFIG[type];
-    if (!config) return;
-    powerups.push({
-        x: W + 30,
-        y: ground() - 80 - Math.random() * 100,
-        w: 30,
-        h: 30,
-        type: type,
-        color: config.color,
-        icon: config.icon,
-        pulse: Math.random() * Math.PI * 2
-    });
-}
-
-function trySpawnPowerup() {
-    gameTime += 0.1;
-    if (gameTime < 10) return;
-    
-    const chance = Math.random() * 100;
-    const roll = 90;
-    
-    if (chance < roll) {
-        const types = ['shield', 'speed', 'gem'];
-        const type = types[Math.floor(Math.random() * types.length)];
-        createPowerup(type);
-    }
-}
-
-function collision(a,b){
-    return(
-        a.x + 8 < b.x + b.w &&
-        a.x + a.w - 8 > b.x &&
-        a.y + 7 < b.y + b.h &&
-        a.y + a.h - 5 > b.y
-    );
-}
-
-function jump(){
-    if(!playing) return;
-    if(fox.grounded){
-        fox.vy = fox.jump;
-        fox.grounded = false;
-    }
-}
-
-function drawBackground(){
-    const theme = getTheme();
-    const gy = ground();
-    const colors = isNight ? theme.skyNight : theme.skyDay;
-    const isSpace = theme.isSpace || false;
-    
-    const gradient = ctx.createLinearGradient(0, 0, 0, gy);
-    gradient.addColorStop(0, colors[0]);
-    gradient.addColorStop(0.5, colors[1]);
-    gradient.addColorStop(1, colors[2]);
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, W, gy);
-
-    if(isSpace){
-        for(let i=0; i<30; i++){
-            const x = (i * 137 + 53) % W;
-            const y = (i * 97 + 31) % (gy * 0.7);
-            const size = 2 + (i % 5);
-            ctx.fillStyle = `rgba(200,180,255,${0.03 + (i % 3) * 0.02})`;
-            ctx.beginPath();
-            ctx.arc(x, y, size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.fillStyle = "rgba(150,100,200,0.05)";
-        ctx.beginPath();
-        ctx.ellipse(W*0.2, gy*0.3, 150, 80, 0.5, 0, Math.PI*2);
-        ctx.fill();
-        ctx.fillStyle = "rgba(100,150,255,0.04)";
-        ctx.beginPath();
-        ctx.ellipse(W*0.7, gy*0.2, 180, 60, -0.3, 0, Math.PI*2);
-        ctx.fill();
-    }
-
-    if(isNight){
-        ctx.fillStyle = isSpace ? "rgba(255,240,220,0.1)" : "rgba(255,240,220,0.15)";
-        ctx.beginPath();
-        ctx.arc(W - 90, 90, 28, 0, Math.PI * 2);
-        ctx.fill();
-        const starColor = isSpace ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.2)";
-        ctx.fillStyle = starColor;
-        for(let i=0; i< (isSpace ? 40 : 20); i++){
-            const x = (i * 47 + 13) % W;
-            const y = 20 + (i * 37) % (gy * 0.5);
-            const size = isSpace ? 1 + (i%4) : 1 + (i%2);
-            ctx.beginPath();
-            ctx.arc(x, y, size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        if(isSpace){
-            const t = Date.now() / 1000;
-            for(let i=0; i<8; i++){
-                const x = (i * 73 + 17 + t * 5) % W;
-                const y = 30 + (i * 53 + 11 + t * 3) % (gy * 0.4);
-                const brightness = 0.3 + Math.sin(t * 2 + i) * 0.2;
-                ctx.fillStyle = `rgba(255,255,255,${brightness})`;
-                ctx.beginPath();
-                ctx.arc(x, y, 2 + (i%2), 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-    } else {
-        ctx.fillStyle = isSpace ? "rgba(200,180,255,0.3)" : "rgba(255,230,180,0.7)";
-        ctx.beginPath();
-        ctx.arc(W - 90, 90, isSpace ? 30 : 35, 0, Math.PI * 2);
-        ctx.fill();
-        if(!isSpace){
-            ctx.fillStyle = "rgba(255,255,255,0.25)";
-            drawCloud(120, 100, 1);
-            drawCloud(W * .55, 145, .7);
-            drawCloud(W * .85, 80, .8);
-        }
-    }
-
-    const groundColors = isNight ? theme.groundNight : theme.groundDay;
-    const groundGrad = ctx.createLinearGradient(0, gy, 0, H);
-    groundGrad.addColorStop(0, groundColors[0]);
-    groundGrad.addColorStop(0.5, groundColors[1]);
-    groundGrad.addColorStop(1, groundColors[2]);
-    ctx.fillStyle = groundGrad;
-    ctx.fillRect(0, gy, W, H - gy);
-    
-    ctx.fillStyle = isNight ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
-    ctx.fillRect(0, gy, W, 3);
-
-    if(isSpace){
-        ctx.fillStyle = "rgba(0,0,0,0.08)";
-        for(let i=0; i<5; i++){
-            const x = (i * 87 + 23) % W;
-            const y = gy + 20 + (i * 43) % (H - gy - 30);
-            ctx.beginPath();
-            ctx.ellipse(x, y, 15 + i*5, 8 + i*3, 0, 0, Math.PI*2);
-            ctx.fill();
-            ctx.fillStyle = "rgba(255,255,255,0.05)";
-            ctx.beginPath();
-            ctx.ellipse(x-4, y-2, 8 + i*3, 4 + i*2, 0, 0, Math.PI*2);
-            ctx.fill();
-            ctx.fillStyle = "rgba(0,0,0,0.08)";
-        }
-    }
-}
-
-function drawCloud(x,y,s){
-    ctx.beginPath();
-    ctx.arc(x, y, 20 * s, 0, Math.PI * 2);
-    ctx.arc(x + 25 * s, y - 8 * s, 27 * s, 0, Math.PI * 2);
-    ctx.arc(x + 52 * s, y, 20 * s, 0, Math.PI * 2);
-    ctx.fill();
-}
-
-function drawPowerup(p) {
-    const cx = p.x + p.w/2;
-    const cy = p.y + p.h/2;
-    p.pulse += 0.05;
-    const scale = 1 + Math.sin(p.pulse) * 0.08;
-    
-    ctx.shadowBlur = 25;
-    ctx.shadowColor = p.color + '50';
-    
-    ctx.beginPath();
-    ctx.arc(cx, cy, 18 * scale, 0, Math.PI * 2);
-    ctx.fillStyle = p.color + '30';
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.arc(cx, cy, 14 * scale, 0, Math.PI * 2);
-    ctx.fillStyle = p.color;
-    ctx.fill();
-    
-    ctx.shadowBlur = 0;
-    
-    ctx.font = '18px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'white';
-    ctx.fillText(p.icon, cx, cy + 1);
-}
-
-function drawFox(){
-    const x = fox.x;
-    const y = fox.y;
-    const running = fox.grounded ? Math.sin(fox.animation) * 4 : 0;
-    const theme = getTheme();
-    const isSpace = theme.isSpace || false;
-    const skin = getSkin(currentSkinId);
-
-    ctx.fillStyle = isSpace ? "rgba(100,80,150,0.15)" : "rgba(0,0,0,.12)";
-    ctx.beginPath();
-    ctx.ellipse(x + 30, ground() + 3, 28, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    let foxColor = skin.color;
-    if (skin.id === 'rainbow') {
-        const hue = (Date.now() / 50) % 360;
-        foxColor = `hsl(${hue}, 80%, 60%)`;
-    }
-    
-    if (skin.effect === 'neon_glow' || skin.effect === 'glow_eyes') {
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = skin.glowColor || foxColor;
-    }
-    
-    if (skin.effect === 'fire_trail' && playing) {
-        trailPositions.push({ x: x + 20, y: y + fox.h/2, life: 1 });
-        if (trailPositions.length > 20) trailPositions.shift();
-        
-        trailPositions.forEach((pos, i) => {
-            const alpha = pos.life * 0.3;
-            const size = 5 * pos.life;
-            ctx.fillStyle = `rgba(255, 107, 53, ${alpha})`;
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
-            ctx.fill();
-            pos.life -= 0.03;
-        });
-    }
-    
-    ctx.fillStyle = foxColor;
-    ctx.beginPath();
-    ctx.moveTo(x + 15, y + 28);
-    ctx.quadraticCurveTo(x - 22, y + 5 + running, x - 10, y - 10 + running);
-    ctx.quadraticCurveTo(x + 5, y + 5, x + 20, y + 23);
-    ctx.fill();
-
-    ctx.fillStyle = isSpace ? "#d8c8f0" : "#f5e6d0";
-    ctx.beginPath();
-    ctx.moveTo(x - 10, y - 10 + running);
-    ctx.quadraticCurveTo(x - 25, y, x - 14, y + 12);
-    ctx.quadraticCurveTo(x - 5, y + 5, x + 1, y + 7);
-    ctx.fill();
-
-    ctx.fillStyle = foxColor;
-    ctx.beginPath();
-    ctx.ellipse(x + 29, y + 29, 27, 18, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = isSpace ? "#d8c8f0" : "#f5e6d0";
-    ctx.beginPath();
-    ctx.ellipse(x + 34, y + 31, 14, 10, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = isSpace ? "#9a7aba" : "#b86b3a";
-    ctx.fillRect(x + 14, y + 39 + running, 10, 11);
-    ctx.fillRect(x + 39, y + 39 - running, 10, 11);
-
-    ctx.fillStyle = foxColor;
-    ctx.beginPath();
-    ctx.ellipse(x + 43, y + 18, 16, 17, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = isSpace ? "#9a7aba" : "#c47a3a";
-    ctx.beginPath();
-    ctx.ellipse(x + 52, y + 8, 21, 17, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = foxColor;
-    ctx.beginPath();
-    ctx.moveTo(x + 38, y - 3);
-    ctx.lineTo(x + 39, y - 20);
-    ctx.lineTo(x + 50, y - 6);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(x + 53, y - 4);
-    ctx.lineTo(x + 62, y - 19);
-    ctx.lineTo(x + 68, y);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = isSpace ? "#c8b8e0" : "#f5cba0";
-    ctx.beginPath();
-    ctx.moveTo(x + 41, y - 6);
-    ctx.lineTo(x + 41, y - 14);
-    ctx.lineTo(x + 47, y - 7);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = isSpace ? "#d8c8f0" : "#f5e6d0";
-    ctx.beginPath();
-    ctx.ellipse(x + 67, y + 13, 12, 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = skin.eyeColor || "#1a1a2a";
-    ctx.beginPath();
-    ctx.arc(x + 75, y + 10, 3.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x + 58, y + 5, 3.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = isSpace ? "#ccffdd" : "#fff";
-    ctx.beginPath();
-    ctx.arc(x + 59, y + 4, 1.2, 0, Math.PI * 2);
-    ctx.fill();
-    
-    if (skin.effect === 'crystal_shine') {
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 5; i++) {
-            ctx.beginPath();
-            ctx.moveTo(x + 10 + i*8, y + 10);
-            ctx.lineTo(x + 20 + i*8, y + 40);
-            ctx.stroke();
-        }
-    }
-}
-
-function drawEgg(e){
-    const cx = e.x + e.w / 2;
-    const theme = getTheme();
-    const isSpace = theme.isSpace || false;
-    
-    // اگر جواهر فعال باشه، تخم‌ها براق‌تر و خاص‌تر به نظر میان
-    if (gemActive) {
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = "rgba(244,114,182,0.4)";
-    } else if(isSpace){
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = "rgba(150,100,255,0.3)";
-    }
-    
-    ctx.fillStyle = e.color;
-    ctx.beginPath();
-    ctx.moveTo(cx, e.y);
-    ctx.bezierCurveTo(e.x + e.w, e.y + 5, e.x + e.w, e.y + 23, cx, e.y + e.h);
-    ctx.bezierCurveTo(e.x, e.y + 23, e.x, e.y + 5, cx, e.y);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = gemActive ? "rgba(244,114,182,0.3)" : (isSpace ? "rgba(200,180,255,0.2)" : "rgba(0,0,0,.06)");
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(e.x + 6, e.y + 18);
-    ctx.quadraticCurveTo(cx, e.y + 12, e.x + e.w - 6, e.y + 18);
-    ctx.stroke();
-    ctx.fillStyle = gemActive ? "rgba(244,114,182,0.15)" : (isSpace ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.12)");
-    ctx.beginPath();
-    ctx.ellipse(cx - 4, e.y + 8, 4, 7, -0.2, 0, Math.PI * 2);
-    ctx.fill();
-}
-
-function drawObstacle(o){
-    const theme = getTheme();
-    const isSpace = theme.isSpace || false;
-    
-    if(o.type === "tree"){
-        if(isSpace){
-            ctx.fillStyle = "#4a2a6a";
-            ctx.fillRect(o.x + 16, o.y + 27, 14, o.h - 27);
-            ctx.fillStyle = "#6a3a8a";
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = "rgba(150,100,255,0.2)";
-            ctx.beginPath();
-            ctx.arc(o.x + 23, o.y + 20, 22, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = "#8a5aaa";
-            ctx.beginPath();
-            ctx.arc(o.x + 7, o.y + 32, 14, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(o.x + 40, o.y + 32, 14, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-        } else {
-            ctx.fillStyle = theme.treeColor || "#6a4a2a";
-            ctx.fillRect(o.x + 16, o.y + 27, 14, o.h - 27);
-            ctx.fillStyle = isNight ? "#3a4a3a" : "#23823c";
-            ctx.beginPath();
-            ctx.arc(o.x + 23, o.y + 20, 25, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = isNight ? "#2a3a2a" : "#2f9e44";
-            ctx.beginPath();
-            ctx.arc(o.x + 7, o.y + 32, 16, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(o.x + 40, o.y + 32, 16, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }else if(o.type === "rock"){
-        if(isSpace){
-            ctx.fillStyle = "#4a3a5a";
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = "rgba(150,100,255,0.15)";
-            ctx.beginPath();
-            ctx.moveTo(o.x, o.y + o.h);
-            ctx.lineTo(o.x + 10, o.y + 10);
-            ctx.lineTo(o.x + 28, o.y);
-            ctx.lineTo(o.x + o.w, o.y + 15);
-            ctx.lineTo(o.x + o.w - 8, o.y + o.h);
-            ctx.closePath();
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = "rgba(200,180,255,0.1)";
-            ctx.beginPath();
-            ctx.ellipse(o.x + 15, o.y + 8, 10, 5, 0, 0, Math.PI*2);
-            ctx.fill();
-        } else {
-            ctx.fillStyle = theme.rockColor || "#7a8a9a";
-            ctx.beginPath();
-            ctx.moveTo(o.x, o.y + o.h);
-            ctx.lineTo(o.x + 10, o.y + 10);
-            ctx.lineTo(o.x + 28, o.y);
-            ctx.lineTo(o.x + o.w, o.y + 15);
-            ctx.lineTo(o.x + o.w - 8, o.y + o.h);
-            ctx.closePath();
-            ctx.fill();
-        }
-    }else{
-        if(isSpace){
-            ctx.fillStyle = "#3a7a5a";
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = "rgba(100,200,150,0.15)";
-            ctx.fillRect(o.x + 9, o.y, 14, o.h);
-            ctx.fillRect(o.x, o.y + 20, 13, 11);
-            ctx.fillRect(o.x + 20, o.y + 38, 13, 11);
-            ctx.fillStyle = "#2a6a4a";
-            ctx.fillRect(o.x + 12, o.y + 5, 8, 5);
-            ctx.fillRect(o.x + 3, o.y + 25, 7, 4);
-            ctx.fillRect(o.x + 22, o.y + 43, 7, 4);
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = "rgba(100,255,200,0.08)";
-            ctx.beginPath();
-            ctx.ellipse(o.x + 16, o.y + 8, 6, 3, 0, 0, Math.PI*2);
-            ctx.fill();
-        } else {
-            ctx.fillStyle = "#25834a";
-            ctx.fillRect(o.x + 9, o.y, 14, o.h);
-            ctx.fillRect(o.x, o.y + 20, 13, 11);
-            ctx.fillRect(o.x + 20, o.y + 38, 13, 11);
-        }
-    }
-}
-
-function updatePowerupTimers() {
-    // مخفی کردن همه تایمرها
-    shieldTimerItem.classList.add('hidden-timer');
-    speedTimerItem.classList.add('hidden-timer');
-    gemTimerItem.classList.add('hidden-timer');
-    
-    let anyActive = false;
-    
-    if (shieldActive) {
-        shieldTimerItem.classList.remove('hidden-timer');
-        shieldTimeDisplay.textContent = Math.ceil(shieldTimer);
-        anyActive = true;
-    }
-    
-    if (speedBoostActive) {
-        speedTimerItem.classList.remove('hidden-timer');
-        speedTimeDisplay.textContent = Math.ceil(speedBoostTimer);
-        anyActive = true;
-    }
-    
-    if (gemActive) {
-        gemTimerItem.classList.remove('hidden-timer');
-        gemTimeDisplay.textContent = Math.ceil(gemTimer);
-        anyActive = true;
-    }
-    
-    if (anyActive) {
-        powerupTimer.classList.remove('hidden');
-    } else {
-        powerupTimer.classList.add('hidden');
-    }
-}
-
-function update(dt){
-    gameTime += dt;
-    updateSpeed();
-
-    fox.vy += fox.gravity * dt;
-    fox.y += fox.vy * dt;
-    if(fox.y + fox.h >= ground()){
-        fox.y = ground() - fox.h;
-        fox.vy = 0;
-        fox.grounded = true;
-    }
-    fox.animation += dt * 15;
-
-    updateDayNight();
-
-    eggTimer -= dt;
-    if(eggTimer <= 0){
-        createEgg();
-        eggTimer = .55 + Math.random() * .4;
-    }
-    
-    for(let i = eggs.length - 1; i >= 0; i--){
-        const e = eggs[i];
-        e.x -= speed * dt;
-        if(collision(fox,e)){
-            collectEgg(e);
-            eggs.splice(i, 1);
-            continue;
-        }
-        if(e.x < -60) eggs.splice(i, 1);
-    }
-
-    obstacleTimer -= dt;
-    if(obstacleTimer <= 0){
-        createObstacle();
-        obstacleTimer = 1.05 + Math.random() * .55;
-    }
-    for(let i = obstacles.length - 1; i >= 0; i--){
-        const o = obstacles[i];
-        o.x -= speed * dt;
-        if(collision(fox,o)){
-            if(shieldActive && shieldHits > 0) {
-                shieldHits--;
-                if(shieldHits === 0) shieldActive = false;
-                obstacles.splice(i, 1);
-                for(let j=0; j<10; j++) {
-                    createParticle(o.x + o.w/2, o.y + o.h/2, '#4fc3f7', 'sparkle');
-                }
-                continue;
-            }
-            endGame();
-            return;
-        }
-        if(o.x < -80) obstacles.splice(i, 1);
-    }
-
-    powerupTimerValue -= dt;
-    if (powerupTimerValue <= 0) {
-        trySpawnPowerup();
-        powerupTimerValue = 2 + Math.random() * 3;
-    }
-    
-    for(let i = powerups.length - 1; i >= 0; i--){
-        const p = powerups[i];
-        p.x -= speed * dt;
-        if(collision(fox, p)){
-            applyPowerup(p.type);
-            powerups.splice(i, 1);
-            continue;
-        }
-        if(p.x < -60) powerups.splice(i, 1);
-    }
-    
-    if (shieldActive) {
-        shieldTimer -= dt;
-        if (shieldTimer <= 0) {
-            shieldActive = false;
-            shieldTimer = 0;
-            if (shieldTimeout) {
-                clearTimeout(shieldTimeout);
-                shieldTimeout = null;
-            }
-            showToast(language === 'fa' ? '🛡️ سپر تمام شد!' : '🛡️ Shield ended!');
-        }
-    }
-
-    if (speedBoostActive) {
-        speedBoostTimer -= dt;
-        if (speedBoostTimer <= 0) {
-            speedBoostActive = false;
-            speedBoostTimer = 0;
-            showToast(language === 'fa' ? '⚡ سرعت تمام شد!' : '⚡ Speed ended!');
-        }
-    }
-    
-    if (gemActive) {
-        gemTimer -= dt;
-        if (gemTimer <= 0) {
-            gemActive = false;
-            gemTimer = 0;
-            showToast(language === 'fa' ? '💎 جواهر تمام شد!' : '💎 Gem ended!');
-        }
-    }
-
-    updatePowerupTimers();
-
-    document.getElementById('shieldIndicator').style.display = shieldActive ? 'block' : 'none';
-    document.getElementById('speedIndicator').style.display = speedBoostActive ? 'block' : 'none';
-    document.getElementById('gemIndicator').style.display = gemActive ? 'block' : 'none';
-
-    if(combo > 0){
-        comboTimer -= dt;
-        if(comboTimer <= 0){
-            combo = 0;
-            comboBox.classList.remove("show");
-        }
-    }
-    
-    updateParticles(dt);
-}
-
-function applyPowerup(type) {
-    const fa = language === 'fa';
-    let msg = '';
-    
-    switch(type) {
-        case 'shield':
-            shieldActive = true;
-            shieldHits = 1;
-            shieldTimer = 15;
-            msg = fa ? '🛡️ سپر فعال شد!' : '🛡️ Shield activated!';
-            for(let i=0; i<15; i++) {
-                createParticle(fox.x + fox.w/2, fox.y + fox.h/2, '#4fc3f7', 'sparkle');
-            }
-            if (shieldTimeout) clearTimeout(shieldTimeout);
-            break;
-        case 'speed':
-            speedBoostActive = true;
-            speedBoostTimer = 15;
-            msg = fa ? '⚡ افزایش سرعت!' : '⚡ Speed boost!';
-            for(let i=0; i<15; i++) {
-                createParticle(fox.x + fox.w/2, fox.y + fox.h/2, '#ffd54f', 'sparkle');
-            }
-            break;
-        case 'gem':
-            gemActive = true;
-            gemTimer = 12;
-            msg = fa ? '💎 تخم‌های باارزش!' : '💎 Gem eggs!';
-            for(let i=0; i<15; i++) {
-                createParticle(fox.x + fox.w/2, fox.y + fox.h/2, '#f472b6', 'sparkle');
-            }
-            break;
-    }
-    updatePowerupTimers();
-    showToast(msg);
-}
-
-function collectEgg(e){
-    combo++;
-    comboTimer = 2;
-    let multiplier = 1;
-    if(combo >= 10) multiplier = 3;
-    else if(combo >= 5) multiplier = 2;
-    
-    // اگر جواهر فعال باشه، امتیاز تخم‌ها بیشتر میشه
-    let earned = e.value * multiplier;
-    if (gemActive) {
-        earned = earned * 1.5; // ۵۰٪ امتیاز بیشتر
-    }
-    
-    score += earned;
-    totalEggs += 1;
-    totalScore += earned;
-    saveWallet();
-    updateSpeed();
-    updateDayNight();
-    updateUI();
-    
-    if(combo >= 2){
-        comboBox.classList.add("show");
-        comboValue.textContent = combo;
-    }
-    
-    const skin = getSkin(currentSkinId);
-    if (skin.effect === 'snow_particles') {
-        for (let i = 0; i < 8; i++) {
-            createParticle(e.x + e.w/2, e.y + e.h/2, '#93c5fd', 'snow');
-        }
-    }
-    if (skin.effect === 'sparkles') {
-        for (let i = 0; i < 12; i++) {
-            createParticle(e.x + e.w/2, e.y + e.h/2, '#fcd34d', 'sparkle');
-        }
-    }
-    if (skin.effect === 'galaxy_stars') {
-        for (let i = 0; i < 10; i++) {
-            createParticle(e.x + e.w/2, e.y + e.h/2, '#818cf8', 'sparkle');
-        }
-    }
-}
-
-function loop(time){
-    if(!playing) return;
-    let dt = (time - lastTime) / 1000;
-    lastTime = time;
-    if(dt > .033) dt = .033;
-    update(dt);
-    draw();
-    if(playing) requestAnimationFrame(loop);
-}
-
-function draw(){
-    drawBackground();
-    for(const e of eggs) drawEgg(e);
-    for(const o of obstacles) drawObstacle(o);
-    for(const p of powerups) drawPowerup(p);
-    drawParticles();
-    drawFox();
-}
-
-function startGame(){
-    stopMusicTimer();
-    score = 0;
-    speed = 330;
-    eggTimer = .3;
-    obstacleTimer = 1;
-    combo = 0;
-    comboTimer = 0;
-    eggs.length = 0;
-    obstacles.length = 0;
-    powerups.length = 0;
-    particles.length = 0;
-    trailPositions.length = 0;
-    lastDayCycle = -1;
-    isNight = false;
-    gameTime = 0;
-    shieldActive = false;
-    shieldHits = 0;
-    shieldTimer = 0;
-    speedBoostActive = false;
-    speedBoostTimer = 0;
-    gemActive = false;
-    gemTimer = 0;
-    powerupTimerValue = 2;
-    if (shieldTimeout) {
-        clearTimeout(shieldTimeout);
-        shieldTimeout = null;
-    }
-    gamesPlayed++;
-    saveWallet();
-    updateUI();
-    comboBox.classList.remove("show");
-    document.getElementById('shieldIndicator').style.display = 'none';
-    document.getElementById('speedIndicator').style.display = 'none';
-    document.getElementById('gemIndicator').style.display = 'none';
-    powerupTimer.classList.add('hidden');
-    resetFox();
-    playing = true;
-    menuButton.style.display = "none";
-    menuPanel.style.display = "none";
-    startScreen.style.display = "none";
-    gameOver.style.display = "none";
-    themeSelectorOverlay.style.display = "none";
-    startMusic();
-    lastTime = performance.now();
-    requestAnimationFrame(loop);
-}
-
-function endGame(){
-    playing = false;
-    stopMusic();
-    finalScore.textContent = score;
-    if(score > best){
-        best = score;
-        recordText.style.display = "block";
-        saveWallet();
-    }else{
-        recordText.style.display = "none";
-    }
-    updateUI();
-    menuButton.style.display = "block";
-    gameOver.style.display = "flex";
-    powerupTimer.classList.add('hidden');
-}
-
-function handleInput(){
-    if(!playing) startGame();
-    else jump();
-}
-
+// ============================================
+// توابع منو و تم
+// ============================================
 function openThemeSelector() {
     themeSelectorOverlay.style.display = 'flex';
     updateThemeUI();
@@ -2929,6 +3103,7 @@ document.querySelectorAll('.theme-option').forEach(opt => {
     opt.addEventListener('click', function() {
         const themeId = this.dataset.theme;
         setTheme(themeId);
+        bgCacheValid = false;
         drawBackground();
         drawFox();
     });
@@ -2955,6 +3130,9 @@ openThemeFromMenu.addEventListener('click', function(e) {
     openThemeSelector();
 });
 
+// ============================================
+// رویدادهای ورودی
+// ============================================
 window.addEventListener("keydown", function(e){
     if(e.code === "Space" || e.code === "ArrowUp"){
         e.preventDefault();
@@ -2980,6 +3158,9 @@ restartButton.addEventListener("click", function(e){
     startGame();
 });
 
+// ============================================
+// دکمه‌های صدا
+// ============================================
 document.getElementById("soundOnButton").addEventListener("click", function(e){
     e.stopPropagation();
     enableSound();
@@ -2990,6 +3171,9 @@ document.getElementById("soundOffButton").addEventListener("click", function(e){
     disableSound();
 });
 
+// ============================================
+// منو
+// ============================================
 menuButton.addEventListener("click", function(e){
     e.stopPropagation();
     if(playing) return;
@@ -3009,6 +3193,9 @@ menuPanel.addEventListener("click", function(e){
     e.stopPropagation();
 });
 
+// ============================================
+// دکمه‌های زبان
+// ============================================
 document.getElementById("faButton").addEventListener("click", function(e){
     e.stopPropagation();
     setLanguage("fa");
@@ -3019,6 +3206,9 @@ document.getElementById("enButton").addEventListener("click", function(e){
     setLanguage("en");
 });
 
+// ============================================
+// کپی کردن کد دعوت
+// ============================================
 copyBtn.addEventListener("click", copyReferralCode);
 
 function copyReferralCode() {
@@ -3062,6 +3252,9 @@ function fallbackCopy(text) {
     document.body.removeChild(textarea);
 }
 
+// ============================================
+// راه‌اندازی اولیه
+// ============================================
 applyLanguage();
 updateUI();
 resetFox();
@@ -3095,7 +3288,15 @@ setTimeout(() => {
     }
 }, 1000);
 
+// نمایش وضعیت بهینه‌سازی در کنسول (برای دیباگ)
+if (isTelegramMiniApp) {
+    console.log('🦊 Fox Eggs running in Telegram Mini App mode with optimizations');
+    console.log('📊 Frame skip:', TELEGRAM_OPTIMIZATIONS.frameSkip);
+    console.log('🎯 Target FPS:', TELEGRAM_OPTIMIZATIONS.targetFPS);
+    console.log('🔇 Heavy effects disabled');
+}
+
 </script>
 
 </body>
-    </html>
+        </html>
